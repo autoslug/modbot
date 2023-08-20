@@ -12,4 +12,5 @@ fcntl.ioctl(i2c_fd, I2C_PRIM, pico_address)
 
 # send data to pico
 data = [0x01, 0x02, 0x03]  # example data
-os.write(i2c_fd, bytes(data))
+while (True):
+    os.write(i2c_fd, bytes(data))

@@ -29,8 +29,8 @@ add_executable(pico_i2c pico_i2c.c )
 pico_set_program_name(pico_i2c "pico_i2c")
 pico_set_program_version(pico_i2c "0.1")
 
-pico_enable_stdio_uart(pico_i2c 1)
-pico_enable_stdio_usb(pico_i2c 0)
+pico_enable_stdio_uart(pico_i2c 0)
+pico_enable_stdio_usb(pico_i2c 1)
 
 # Add the standard library to the build
 target_link_libraries(pico_i2c

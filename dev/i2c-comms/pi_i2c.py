@@ -1,5 +1,6 @@
 import fcntl
 import os
+import time
 
 I2C_PRIM = 0x0703
 
@@ -14,3 +15,4 @@ fcntl.ioctl(i2c_fd, I2C_PRIM, pico_address)
 data = [0x01, 0x02, 0x03]  # example data
 while (True):
     os.write(i2c_fd, bytes(data))
+    time.sleep(1)

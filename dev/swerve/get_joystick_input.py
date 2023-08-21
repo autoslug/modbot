@@ -2,17 +2,18 @@ import pygame.joystick
 import time
 
 # Initialize the joystick
-pygame.joystick.init()
-joysticks = [pygame.joystick.Joystick(x)
-             for x in range(pygame.joystick.get_count())]
-joystick = joysticks[0]
-joystick.init()
+# pygame.joystick.init()
+# joysticks = [pygame.joystick.Joystick(x)
+#              for x in range(pygame.joystick.get_count())]
+# joystick = joysticks[0]
+# joystick.init()
 
-axes = joystick.get_numaxes()
-buttons = joystick.get_numbuttons()
-hats = joystick.get_numhats()
+# axes = joystick.get_numaxes()
+# buttons = joystick.get_numbuttons()
+# hats = joystick.get_numhats()
 
 while True:
+    pygame.joystick.init()
     joysticks = [pygame.joystick.Joystick(x)
                  for x in range(pygame.joystick.get_count())]
     joystick = joysticks[0]

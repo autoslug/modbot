@@ -8,4 +8,4 @@ The `main` branch will be used as "known good" code — anything in the top-leve
 4. After you're done, rebase your branch onto `dev`, then create a pull request from your branch to `dev`, and (preferably), get it reviewed before you merge it.
   a. If there are changes on `dev` before you merge your pull request, please rebase again.
   b. Your branch doesn't have to be deleted, but you should merge `dev` into your branch if you don't delete it.
-5. Once the code in `/pi` and `/pico` is bug-free, safe to run on the robot, and the features in development are complete, create a pull request from the `dev` branch to the `main` branch. This must be reviewed by at least one other person, before it can be merged. Once it is merged, merge `main` back into `dev`.
+5. Once the code in `/pi` and `/pico` on the `dev` branch is bug-free, safe to run on the robot, and the features in development are complete, create a pull request from the `dev` branch to the `main` branch. This must be reviewed by at least one other person, before it can be merged. Once it is merged, merge `main` back into `dev`.

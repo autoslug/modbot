@@ -16,3 +16,7 @@ data = [0x01, 0x02, 0x03]  # example data
 while (True):
     os.write(i2c_fd, bytes(data))
     time.sleep(1)
+    # read data from pico
+    incoming_data = os.read(i2c_fd, 3)  # read 3 bytes
+    time.sleep(1)
+    print("Received data from Pico: ", list(incoming_data));

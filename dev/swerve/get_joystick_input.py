@@ -13,6 +13,14 @@ buttons = joystick.get_numbuttons()
 hats = joystick.get_numhats()
 
 while True:
+    joysticks = [pygame.joystick.Joystick(x)
+                 for x in range(pygame.joystick.get_count())]
+    joystick = joysticks[0]
+    joystick.init()
+
+    axes = joystick.get_numaxes()
+    buttons = joystick.get_numbuttons()
+    hats = joystick.get_numhats()
     for i in range(axes):
         axis = joystick.get_axis(i)
         print("Axis {} value: {:>6.3f}".format(i, axis))

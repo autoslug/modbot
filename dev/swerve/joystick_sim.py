@@ -1,36 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-# import keyboard
 from XboxController import XboxController
-
-
-def chassisStateToModuleStates(vel, omega, module_distances) -> list:
-    states = []
-
-    # print(vel, omega, module_distances)
-
-    for module_distance in module_distances:
-        states.append(vel + omega * perpendicular(module_distance))
-
-    # print(states)
-    return np.array(states)
-
-
-def perpendicular(vector):
-    return np.array([-vector[1], vector[0]])
-
-
-def normalizeModules(moduleStates):
-    max_speed = max([np.linalg.norm(vec) for vec in moduleStates])
-    if max_speed <= 1:
-        return moduleStates
-
-    new_states = []
-    for state in moduleStates:
-        new_states.append(state / max_speed)
-
-    return np.array(new_states)
 
 
 def plot_vec(vector, origin=[0, 0], color="black"):
@@ -46,36 +16,37 @@ def plot_vec(vector, origin=[0, 0], color="black"):
 
 
 if __name__ == "__main__":
-    # module radius, i.e distance of modules from center
+    joy = XboxController()
+
+    # robot radius
     R = 5
     # dt, the delta time of the "animation"
     DT = 0.01
+
     angle_1 = 3.0 / 6.0 * np.pi
     angle_2 = 7.0 / 6.0 * np.pi
     angle_3 = 11.0 / 6.0 * np.pi
-    center_pos = np.array([0, 0])
-    modules = np.array(
+    center_pos = np.array([0.0, 0.0])
+    module_dirs = np.array([3.0, 7.0, 11.0]) / 6.0 * np.pi
+    module_pos = np.array(
         [
-            [R * np.cos(angle_1) + center_pos[0], R * np.sin(angle_1) + center_pos[1]],
-            [R * np.cos(angle_2) + center_pos[0], R * np.sin(angle_2) + center_pos[0]],
-            [R * np.cos(angle_3) + center_pos[0], R * np.sin(angle_3) + center_pos[1]],
+            [R * np.cos(a) + center_pos[0], R * np.sin(a) + center_pos[1]]
+            for a in module_dirs
         ]
     )
+    # module_pos = np.array(
+    #     [
+    #         [R * np.cos(angle_1) + center_pos[0], R * np.sin(angle_1) + center_pos[1]],
+    #         [R * np.cos(angle_2) + center_pos[0], R * np.sin(angle_2) + center_pos[1]],
+    #         [R * np.cos(angle_3) + center_pos[0], R * np.sin(angle_3) + center_pos[1]],
+    #     ]
+    # )
 
-    plot_vec([modules[:, 0], modules[:, 1]], origin=[[0, 0, 0], [0, 0, 0]])
-
-    plt.pause(DT)
-
-    omega = 0
-
-    joy = XboxController()
-
-    while True:  # making a loop
+    while True:
         try:
             joy_input = joy.read_self()
-            # QUIT BY PRESSING Q ANYTIME
             if joy_input.Back:
-                print("Q pressed, quitting...")
+                print("Exiting")
                 break
 
             # PS5 controller
@@ -87,100 +58,97 @@ if __name__ == "__main__":
             # fake Xbox controller
             thresholds = [-1000, 1000]
 
-            # get keyboard inputs
-            left = 1 if joy_input.LeftJoystickX < thresholds[0] else 0
-            right = 1 if joy_input.LeftJoystickX > thresholds[1] else 0
-            up = 1 if joy_input.LeftJoystickY < thresholds[0] else 0
-            down = 1 if joy_input.LeftJoystickY > thresholds[1] else 0
+            # get inputs
+            # left = 1 if joy_input.LeftJoystickX < thresholds[0] else 0
+            # right = 1 if joy_input.LeftJoystickX > thresholds[1] else 0
+            # up = 1 if joy_input.LeftJoystickY < thresholds[0] else 0
+            # down = 1 if joy_input.LeftJoystickY > thresholds[1] else 0
+            # cw = 1 if joy_input.RightJoystickX < thresholds[0] else 0
+            # ccw = 1 if joy_input.RightJoystickX > thresholds[1] else 0
 
-            # good enough for testing, just very basic 8 directions
-            dirs = np.array(
-                np.array([-1, 0]) * left
-                + np.array([1, 0]) * right
-                + np.array([0, 1]) * up
-                + np.array([0, -1]) * down
-            )
+            # get inputs in "full" resolution to allow for gradual moving & changing directions
+            # joystick measures from -32768 to 32767, so we scale it down to -1.0 to 1.0 (change per joystick)
+            joy_scale = 2.0**-15
 
-            # if not zero (avoid divide by zero error), make it a unit vector
-            if dirs.sum() != 0:
-                dirs = np.array(dirs / np.linalg.norm(dirs))
+            left_right = round(joy_input.LeftJoystickX * joy_scale, 3)
+            up_down = -1.0 * round(joy_input.LeftJoystickY * joy_scale, 3)
+            rot = -1.0 * round(joy_input.RightJoystickX * joy_scale, 3)
 
-            # W and E to rotate
-            if joy_input.RightJoystickX < thresholds[0]:
-                if omega < 6:
-                    omega += 0.75
-            elif joy_input.RightJoystickX > thresholds[1]:
-                if omega > -6:
-                    omega -= 0.75
-            else:
-                if omega < 0.75 and omega > -0.75:
-                    omega = 0
-                elif omega > 0:
-                    omega -= 0.75
-                elif omega < 0:
-                    omega += 0.75
+            # print(left, right, up, down, cw, ccw)
+            # print(joy_input.LeftJoystickX, joy_input.LeftJoystickY, joy_input.RightJoystickX)
 
-            # spin the modules by the raidans/sec * sec
-            angle_1 += omega * DT
-            angle_2 += omega * DT
-            angle_3 += omega * DT
-            modules = np.array(
+            ## LOGIC (begin)
+
+            # calculate movement and rotation using inputs
+            # old code, only 8 directions
+            # move = np.array([right - left, up - down]) * 1.0
+            # rotate = cw - ccw
+            # new code, full resolution
+            move = np.array([left_right, up_down]) * 1.0
+            rotate = rot
+
+            # print(move, rotate)
+
+            # update center position
+            center_pos += move
+
+            # update module directions
+            module_dirs += rotate * 0.1
+
+            ## LOGIC (end)
+
+            # update module positions using module directions and center position
+            module_pos = np.array(
                 [
-                    [
-                        R * np.cos(angle_1) + center_pos[0],
-                        R * np.sin(angle_1) + center_pos[1],
-                    ],
-                    [
-                        R * np.cos(angle_2) + center_pos[0],
-                        R * np.sin(angle_2) + center_pos[1],
-                    ],
-                    [
-                        R * np.cos(angle_3) + center_pos[0],
-                        R * np.sin(angle_3) + center_pos[1],
-                    ],
+                    [R * np.cos(a) + center_pos[0], R * np.sin(a) + center_pos[1]]
+                    for a in module_dirs
                 ]
             )
-            center_pos = np.add(center_pos, dirs)
-            # center_pos += dirs
-            # print(center_pos, dirs)
-            module_dirs = chassisStateToModuleStates(dirs, omega / R, modules)
 
-            module_dirs = normalizeModules(module_dirs)
+            # print(module_pos, module_dirs)
 
-            # modules += module_dirs
-            # print(module_dirs)
-            print(modules)
-
-            # i spent too much time writing these three lines of code fml
-            plt.xlim(-5 * R, 5 * R)
-            plt.ylim(-5 * R, 5 * R)
+            # set box size and aspect ratio
+            box_scale = 10
+            plt.xlim(-box_scale * R, box_scale * R)
+            plt.ylim(-box_scale * R, box_scale * R)
             plt.gca().set_aspect("equal", adjustable="box")
 
-            # [:,0] is fancy way to get all first elements of the lists
-            # plot_vec(
-            #     [modules[:, 0], modules[:, 1]],
-            #     origin=[
-            #         [center_pos[0], center_pos[0], center_pos[0]],
-            #         [center_pos[1], center_pos[1], center_pos[1]],
-            #     ],
-            # )
+            # plot robot
+            for i, module in enumerate(module_pos):
+                # plot line from center to module
+                plt.plot(
+                    [center_pos[0], module[0]], [center_pos[1], module[1]], "black"
+                )
 
-            center_stretched = np.repeat(np.expand_dims(center_pos, axis=1), 3, axis=1)
-            plot_vec(
-                np.array([modules[:, 0], modules[:, 1]]) - center_stretched,
-                origin=center_stretched,
-            )
+                # calculate module direction vector using robot movement vector & rotation 
+                dir_vec = (
+                    move
+                    + np.array([-np.sin(module_dirs[i]), np.cos(module_dirs[i])])
+                    * rotate
+                )
 
-            plot_vec(
-                [2 * module_dirs[:, 0], 2 * module_dirs[:, 1]],
-                origin=[modules[:, 0], modules[:, 1]],
-                color="r",
-            )
+                # plot module direction vectors
+                plt.quiver(
+                    module[0],
+                    module[1],
+                    dir_vec[0],
+                    dir_vec[1],
+                    color="red",
+                    angles="xy",
+                    scale_units="xy",
+                    scale=0.5,
+                )
 
-            plot_vec(
-                module_dirs[0] + module_dirs[1] + module_dirs[2],
-                origin=center_pos,
-                color="g",
+            # plot center direction vector
+            plt.quiver(
+                center_pos[0],
+                center_pos[1],
+                move[0],
+                move[1],
+                color="green",
+                angles="xy",
+                scale_units="xy",
+                scale=0.5,
             )
 
             plt.pause(DT)

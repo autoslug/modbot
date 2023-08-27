@@ -34,13 +34,6 @@ if __name__ == "__main__":
             for a in module_dirs
         ]
     )
-    # module_pos = np.array(
-    #     [
-    #         [R * np.cos(angle_1) + center_pos[0], R * np.sin(angle_1) + center_pos[1]],
-    #         [R * np.cos(angle_2) + center_pos[0], R * np.sin(angle_2) + center_pos[1]],
-    #         [R * np.cos(angle_3) + center_pos[0], R * np.sin(angle_3) + center_pos[1]],
-    #     ]
-    # )
 
     while True:
         try:
@@ -120,7 +113,7 @@ if __name__ == "__main__":
                     [center_pos[0], module[0]], [center_pos[1], module[1]], "black"
                 )
 
-                # calculate module direction vector using robot movement vector & rotation 
+                # calculate module direction vector using robot movement vector & rotation
                 dir_vec = (
                     move
                     + np.array([-np.sin(module_dirs[i]), np.cos(module_dirs[i])])

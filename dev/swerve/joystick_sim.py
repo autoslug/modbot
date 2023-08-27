@@ -8,12 +8,12 @@ from XboxController import XboxController
 def chassisStateToModuleStates(vel, omega, module_distances) -> list:
     states = []
 
-    print(vel, omega, module_distances)
+    # print(vel, omega, module_distances)
 
     for module_distance in module_distances:
         states.append(vel + omega * perpendicular(module_distance))
 
-    print(states)
+    # print(states)
     return np.array(states)
 
 
@@ -56,12 +56,9 @@ if __name__ == "__main__":
     center_pos = np.array([0, 0])
     modules = np.array(
         [
-            [R * np.cos(angle_1) + center_pos[0], R *
-             np.sin(angle_1) + center_pos[1]],
-            [R * np.cos(angle_2) + center_pos[0], R *
-             np.sin(angle_2) + center_pos[0]],
-            [R * np.cos(angle_3) + center_pos[0], R *
-             np.sin(angle_3) + center_pos[1]],
+            [R * np.cos(angle_1) + center_pos[0], R * np.sin(angle_1) + center_pos[1]],
+            [R * np.cos(angle_2) + center_pos[0], R * np.sin(angle_2) + center_pos[0]],
+            [R * np.cos(angle_3) + center_pos[0], R * np.sin(angle_3) + center_pos[1]],
         ]
     )
 
@@ -75,21 +72,27 @@ if __name__ == "__main__":
 
     while True:  # making a loop
         try:
-            print(0)
             joy_input = joy.read_self()
             # QUIT BY PRESSING Q ANYTIME
             if joy_input.Back:
                 print("Q pressed, quitting...")
                 break
 
-            print(1)
-            # get keyboard inputs
-            left = 1 if joy_input.LeftJoystickX < 100 else 0
-            right = 1 if joy_input.LeftJoystickX > 155 else 0
-            up = 1 if joy_input.LeftJoystickY < 100 else 0
-            down = 1 if joy_input.LeftJoystickY > 155 else 0
+            # PS5 controller
+            # thresholds = [
+            #     100,
+            #     155
+            # ]
 
-            print(2)
+            # fake Xbox controller
+            thresholds = [-1000, 1000]
+
+            # get keyboard inputs
+            left = 1 if joy_input.LeftJoystickX < thresholds[0] else 0
+            right = 1 if joy_input.LeftJoystickX > thresholds[1] else 0
+            up = 1 if joy_input.LeftJoystickY < thresholds[0] else 0
+            down = 1 if joy_input.LeftJoystickY > thresholds[1] else 0
+
             # good enough for testing, just very basic 8 directions
             dirs = np.array(
                 np.array([-1, 0]) * left
@@ -98,17 +101,15 @@ if __name__ == "__main__":
                 + np.array([0, -1]) * down
             )
 
-            print(3)
             # if not zero (avoid divide by zero error), make it a unit vector
             if dirs.sum() != 0:
                 dirs = np.array(dirs / np.linalg.norm(dirs))
 
             # W and E to rotate
-            print(4)
-            if joy_input.RightJoystickX < 100:
+            if joy_input.RightJoystickX < thresholds[0]:
                 if omega < 6:
                     omega += 0.75
-            elif joy_input.RightJoystickX > 155:
+            elif joy_input.RightJoystickX > thresholds[1]:
                 if omega > -6:
                     omega -= 0.75
             else:
@@ -120,11 +121,9 @@ if __name__ == "__main__":
                     omega += 0.75
 
             # spin the modules by the raidans/sec * sec
-            print(5)
             angle_1 += omega * DT
             angle_2 += omega * DT
             angle_3 += omega * DT
-            print(6)
             modules = np.array(
                 [
                     [
@@ -141,10 +140,9 @@ if __name__ == "__main__":
                     ],
                 ]
             )
-            print(7)
             center_pos = np.add(center_pos, dirs)
             # center_pos += dirs
-            print(center_pos, dirs)
+            # print(center_pos, dirs)
             module_dirs = chassisStateToModuleStates(dirs, omega / R, modules)
 
             module_dirs = normalizeModules(module_dirs)
@@ -153,13 +151,11 @@ if __name__ == "__main__":
             # print(module_dirs)
             print(modules)
 
-            print(9)
             # i spent too much time writing these three lines of code fml
-            plt.xlim(center_pos[0] + -2 * R, center_pos[0] + 2 * R)
-            plt.ylim(center_pos[1] + -2 * R, center_pos[1] + 2 * R)
+            plt.xlim(-5 * R, 5 * R)
+            plt.ylim(-5 * R, 5 * R)
             plt.gca().set_aspect("equal", adjustable="box")
 
-            print(10)
             # [:,0] is fancy way to get all first elements of the lists
             # plot_vec(
             #     [modules[:, 0], modules[:, 1]],
@@ -168,14 +164,24 @@ if __name__ == "__main__":
             #         [center_pos[1], center_pos[1], center_pos[1]],
             #     ],
             # )
+
+            center_stretched = np.repeat(np.expand_dims(center_pos, axis=1), 3, axis=1)
+            plot_vec(
+                np.array([modules[:, 0], modules[:, 1]]) - center_stretched,
+                origin=center_stretched,
+            )
+
             plot_vec(
                 [2 * module_dirs[:, 0], 2 * module_dirs[:, 1]],
                 origin=[modules[:, 0], modules[:, 1]],
                 color="r",
             )
 
-            plot_vec(module_dirs[0] + module_dirs[1] +
-                     module_dirs[2], origin=center_pos, color="g")
+            plot_vec(
+                module_dirs[0] + module_dirs[1] + module_dirs[2],
+                origin=center_pos,
+                color="g",
+            )
 
             plt.pause(DT)
             plt.clf()

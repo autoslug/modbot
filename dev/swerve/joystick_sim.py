@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from XboxController import XboxController
+
+# from Controller import GemXboxController
+from Controller import NintendoProController
 
 
 def plot_vec(vector, origin=[0, 0], color="black"):
@@ -16,7 +18,8 @@ def plot_vec(vector, origin=[0, 0], color="black"):
 
 
 if __name__ == "__main__":
-    joy = XboxController()
+    # joy = GemXboxController()
+    joy = NintendoProController()
 
     # robot radius
     R = 5
@@ -44,12 +47,12 @@ if __name__ == "__main__":
 
             # PS5 controller
             # thresholds = [
-            #     100,
-            #     155
+            #     0.4,
+            #     0.6
             # ]
 
-            # fake Xbox controller
-            thresholds = [-1000, 1000]
+            # Gem Xbox controller
+            # thresholds = [-0.03, 0.03]
 
             # get inputs
             # left = 1 if joy_input.LeftJoystickX < thresholds[0] else 0
@@ -60,12 +63,15 @@ if __name__ == "__main__":
             # ccw = 1 if joy_input.RightJoystickX > thresholds[1] else 0
 
             # get inputs in "full" resolution to allow for gradual moving & changing directions
-            # joystick measures from -32768 to 32767, so we scale it down to -1.0 to 1.0 (change per joystick)
-            joy_scale = 2.0**-15
 
-            left_right = round(joy_input.LeftJoystickX * joy_scale, 3)
-            up_down = -1.0 * round(joy_input.LeftJoystickY * joy_scale, 3)
-            rot = -1.0 * round(joy_input.RightJoystickX * joy_scale, 3)
+            inverts = [False, False, True]  # Nintendo Pro Controller
+            # inverts = [False, True, True] # Gem Xbox Controller
+
+            left_right = (-1.0 if inverts[0] else 1.0) * round(
+                joy_input.LeftJoystickX, 3
+            )
+            up_down = (-1.0 if inverts[1] else 1.0) * round(joy_input.LeftJoystickY, 3)
+            rot = (-1.0 if inverts[2] else 1.0) * round(joy_input.RightJoystickX, 3)
 
             # print(left, right, up, down, cw, ccw)
             # print(joy_input.LeftJoystickX, joy_input.LeftJoystickY, joy_input.RightJoystickX)
@@ -73,9 +79,11 @@ if __name__ == "__main__":
             ## LOGIC (begin)
 
             # calculate movement and rotation using inputs
+
             # old code, only 8 directions
             # move = np.array([right - left, up - down]) * 1.0
             # rotate = cw - ccw
+
             # new code, full resolution
             move = np.array([left_right, up_down]) * 1.0
             rotate = rot
@@ -143,6 +151,9 @@ if __name__ == "__main__":
                 scale_units="xy",
                 scale=0.5,
             )
+
+            if abs(center_pos[0]) > box_scale * R or abs(center_pos[1]) > box_scale * R:
+                joy.controller.send_rumble(False, True, 1)
 
             plt.pause(DT)
             plt.clf()

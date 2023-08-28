@@ -5,16 +5,8 @@ import matplotlib.pyplot as plt
 from Controller import NintendoProController
 
 
-def plot_vec(vector, origin=[0, 0], color="black"):
-    plt.quiver(
-        *origin,
-        vector[0],
-        vector[1],
-        color=color,
-        angles="xy",
-        scale_units="xy",
-        scale=1
-    )
+def perpendicular(vec):
+    return np.array([-vec[1], vec[0]])
 
 
 if __name__ == "__main__":
@@ -24,7 +16,7 @@ if __name__ == "__main__":
     # robot radius
     R = 5
     # dt, the delta time of the "animation"
-    DT = 0.01
+    DT = 0.001
 
     angle_1 = 3.0 / 6.0 * np.pi
     angle_2 = 7.0 / 6.0 * np.pi
@@ -37,6 +29,7 @@ if __name__ == "__main__":
             for a in module_dirs
         ]
     )
+    freeze_pos = center_pos.copy()
 
     while True:
         try:
@@ -45,56 +38,47 @@ if __name__ == "__main__":
                 print("Exiting")
                 break
 
-            # PS5 controller
-            # thresholds = [
-            #     0.4,
-            #     0.6
-            # ]
-
-            # Gem Xbox controller
-            # thresholds = [-0.03, 0.03]
-
-            # get inputs
-            # left = 1 if joy_input.LeftJoystickX < thresholds[0] else 0
-            # right = 1 if joy_input.LeftJoystickX > thresholds[1] else 0
-            # up = 1 if joy_input.LeftJoystickY < thresholds[0] else 0
-            # down = 1 if joy_input.LeftJoystickY > thresholds[1] else 0
-            # cw = 1 if joy_input.RightJoystickX < thresholds[0] else 0
-            # ccw = 1 if joy_input.RightJoystickX > thresholds[1] else 0
-
             # get inputs in "full" resolution to allow for gradual moving & changing directions
 
-            inverts = [False, False, True]  # Nintendo Pro Controller
+            inverts = [False, False, False, False]  # Nintendo Pro Controller
             # inverts = [False, True, True] # Gem Xbox Controller
 
-            left_right = (-1.0 if inverts[0] else 1.0) * round(
-                joy_input.LeftJoystickX, 3
-            )
-            up_down = (-1.0 if inverts[1] else 1.0) * round(joy_input.LeftJoystickY, 3)
-            rot = (-1.0 if inverts[2] else 1.0) * round(joy_input.RightJoystickX, 3)
+            left_x = (-1.0 if inverts[0] else 1.0) * round(joy_input.LeftJoystickX, 3)
+            left_y = (-1.0 if inverts[1] else 1.0) * round(joy_input.LeftJoystickY, 3)
+            triggers = joy_input.LeftTrigger - joy_input.RightTrigger
 
-            # print(left, right, up, down, cw, ccw)
-            # print(joy_input.LeftJoystickX, joy_input.LeftJoystickY, joy_input.RightJoystickX)
+            right_x = (-1.0 if inverts[2] else 1.0) * round(joy_input.RightJoystickX, 3)
+            right_y = (-1.0 if inverts[3] else 1.0) * round(joy_input.RightJoystickY, 3)
 
             ## LOGIC (begin)
 
             # calculate movement and rotation using inputs
 
-            # old code, only 8 directions
-            # move = np.array([right - left, up - down]) * 1.0
-            # rotate = cw - ccw
+            dist = np.hypot(
+                freeze_pos[0] - center_pos[0], freeze_pos[1] - center_pos[1]
+            )
 
-            # new code, full resolution
-            move = np.array([left_right, up_down]) * 1.0
-            rotate = rot
+            if not joy_input.RightBumper:
+                move = np.array([left_x, left_y]) * 1.0
+                rotate = 0.1 * triggers
+            elif dist > R:
+                x = (freeze_pos[0] - center_pos[0]) / dist
+                y = (freeze_pos[1] - center_pos[1]) / dist
+                move = np.array(
+                    [-1.0 * y * left_x + x * left_y, x * left_x + y * left_y]
+                )
+                rotate = (-1.0 if left_x > 0 else 1.0) * np.hypot(move[0], move[1]) / dist + 0.1 * triggers
 
-            # print(move, rotate)
+            if joy_input.LeftBumper:
+                freeze_pos = center_pos.copy()
+            else:
+                freeze_pos += np.array([right_x, right_y]) * 1.0
 
             # update center position
             center_pos += move
 
             # update module directions
-            module_dirs += rotate * 0.1
+            module_dirs += rotate
 
             ## LOGIC (end)
 
@@ -105,8 +89,6 @@ if __name__ == "__main__":
                     for a in module_dirs
                 ]
             )
-
-            # print(module_pos, module_dirs)
 
             # set box size and aspect ratio
             box_scale = 10
@@ -125,7 +107,7 @@ if __name__ == "__main__":
                 dir_vec = (
                     move
                     + np.array([-np.sin(module_dirs[i]), np.cos(module_dirs[i])])
-                    * rotate
+                    * rotate * 10
                 )
 
                 # plot module direction vectors
@@ -152,6 +134,11 @@ if __name__ == "__main__":
                 scale=0.5,
             )
 
+            plt.plot(
+                [center_pos[0], freeze_pos[0]], [center_pos[1], freeze_pos[1]], "b"
+            )
+
+            # rumble if robot is outside of box
             if abs(center_pos[0]) > box_scale * R or abs(center_pos[1]) > box_scale * R:
                 joy.controller.send_rumble(False, True, 1)
 

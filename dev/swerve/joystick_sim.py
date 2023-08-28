@@ -67,12 +67,17 @@ if __name__ == "__main__":
                 move = np.array(
                     [-1.0 * y * left_x + x * left_y, x * left_x + y * left_y]
                 )
-                rotate = (-1.0 if left_x > 0 else 1.0) * np.hypot(move[0], move[1]) / dist + 0.1 * triggers
+                rotate = (-1.0 if left_x > 0 else 1.0) * np.hypot(
+                    move[0], move[1]
+                ) / dist + 0.1 * triggers
 
             if joy_input.LeftBumper:
                 freeze_pos = center_pos.copy()
             else:
                 freeze_pos += np.array([right_x, right_y]) * 1.0
+
+            if not joy_input.RightBumper:
+                freeze_pos += move * 1.0 + np.array([right_x, right_y]) * 1.0
 
             # update center position
             center_pos += move
@@ -96,6 +101,8 @@ if __name__ == "__main__":
             plt.ylim(-box_scale * R, box_scale * R)
             plt.gca().set_aspect("equal", adjustable="box")
 
+            module_controls = []
+
             # plot robot
             for i, module in enumerate(module_pos):
                 # plot line from center to module
@@ -107,7 +114,15 @@ if __name__ == "__main__":
                 dir_vec = (
                     move
                     + np.array([-np.sin(module_dirs[i]), np.cos(module_dirs[i])])
-                    * rotate * 10
+                    * rotate
+                    * 10
+                )
+
+                module_controls.append(
+                    (
+                        round(np.rad2deg(np.arctan2(dir_vec[1], dir_vec[0])), 3),
+                        round(np.hypot(dir_vec[0], dir_vec[1]), 3),
+                    )
                 )
 
                 # plot module direction vectors
@@ -121,6 +136,8 @@ if __name__ == "__main__":
                     scale_units="xy",
                     scale=0.5,
                 )
+
+            print(module_controls)
 
             # plot center direction vector
             plt.quiver(

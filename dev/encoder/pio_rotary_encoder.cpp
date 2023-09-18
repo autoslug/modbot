@@ -6,6 +6,9 @@
 
 #include "pio_rotary_encoder.pio.h"
 
+#include "pico/multicore.h"
+
+
 // class to read the rotation of the rotary encoder
 class RotaryEncoder
 {
@@ -58,8 +61,18 @@ public:
         return rotation;
     }
 
+    // get the current estimated velocity
+    int get_velocity(void)
+    {
+        return velocity;
+    }
+
+    void setup_velocity_multicore(void) {
+        multicore_launch_core1(velocityLoop);
+    }
+
 private:
-    static void pio_irq_handler()
+    void pio_irq_handler()
     {
         // test if irq 0 was raised
         if (pio0_hw->irq & 1)
@@ -75,16 +88,26 @@ private:
         pio0_hw->irq = 3;
     }
 
+    void velocityLoop(int delta_time) {
+        prev_rotation = rotation
+        while (true) {
+            sleep_ms(delta_time);
+            velocity = (rotation - prev_rotation) / delta_time;
+            prev_rotation = rotation
+        }
+    }
+
     // the pio instance
     PIO pio;
     // the state machine
     uint sm;
     // the current location of rotation
-    static int rotation;
+    int rotation = 0;
+    // the last velocity loop rotation recorded
+    int prev_rotation = 0;
+    // the current estimated velocity
+    int velocity = 0;
 };
-
-// Initialize static member of class Rotary_encoder
-int RotaryEncoder::rotation = 0;
 
 int main()
 {
@@ -92,14 +115,22 @@ int main()
     stdio_init_all();
     // the A of the rotary encoder is connected to GPIO 16, B to GPIO 17
     RotaryEncoder my_encoder(16);
-    // initialize the rotatry encoder rotation as 0
+    // initialize the rotary encoder rotation as 0
     my_encoder.set_rotation(0);
+
+    my_encoder.setup_velocity_multicore()
+
+    const short LOOP_TIME = 50; // in ms
+
+    int prev_pos = 0;
+
     // infinite loop to print the current rotation
     while (true)
     {
-        sleep_ms(50);
-        printf("rotation=%d\n", my_encoder.get_rotation());
-        // printf("Hello, pico!\n");
-        
+        sleep_ms(LOOP_TIME);
+        int pos = my_encoder.get_rotation();
+        printf("rotation=%d\n", pos);
+        printf("velocity=%d\n", (pos-prev_pos) / LOOP_TIME);
+        printf("velocity multicore=%d\n", my_encoder.get_velocity());
     }
 }

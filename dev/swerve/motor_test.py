@@ -11,7 +11,7 @@ wheel_in2_pin = 3
 wheel_pwm_pin = 2
 
 freq = 500
-disable = False
+disable = True
 joy = Controller()
 
 h = lgpio.gpiochip_open(0)

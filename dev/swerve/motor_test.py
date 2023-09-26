@@ -4,13 +4,13 @@ import lgpio
 from Controller import Controller
 
 
-turn_in1_pin = 4
-turn_in2_pin = 3
-turn_pwm_pin = 2
+turn_in1_pin = 22
+turn_in2_pin = 27
+turn_pwm_pin = 17
 
-wheel_in1_pin = 22
-wheel_in2_pin = 27
-wheel_pwm_pin = 17
+wheel_in1_pin = 4
+wheel_in2_pin = 3
+wheel_pwm_pin = 2
 
 freq = 500
 
@@ -22,12 +22,19 @@ lgpio.gpio_claim_output(h, wheel_in2_pin)
 
 joy = Controller()
 
+disable = False
+
 try:
     while True:
         status = joy.read_self()
 
         if status.X:
-            break
+            disable = True
+        elif status.A:
+            disable = False
+
+        if disable:
+            continue
 
         x = status.LeftJoystickX
         y = status.LeftJoystickY

@@ -1,7 +1,4 @@
-import time
 import lgpio
-from inputs import UnpluggedError
-
 from Controller import Controller
 
 
@@ -28,7 +25,6 @@ exit_count = 0
 
 try:
     while True:
-        
         status = joy.read_self()
 
         if status.X:

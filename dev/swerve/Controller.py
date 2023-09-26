@@ -73,7 +73,7 @@ class Controller(object):
         return self
 
     def threshold(self, val):
-        return val if abs(val) > self.THRESHOLD else 0
+        return val - 1.0 if abs(val - 1.0) > self.THRESHOLD else 0
 
     def _monitor_controller(self):
         while True:

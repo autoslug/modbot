@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # from Controller import GemXboxController
-from Controller import NintendoProController
+# from Controller import NintendoProController
+from Controller import Controller
 
 
 def perpendicular(vec):
@@ -11,7 +12,8 @@ def perpendicular(vec):
 
 if __name__ == "__main__":
     # joy = GemXboxController()
-    joy = NintendoProController()
+    # joy = NintendoProController()
+    joy = Controller()
 
     # robot radius
     R = 5

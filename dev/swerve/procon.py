@@ -3,7 +3,7 @@
 import math
 import time
 
-import hid
+import hid  # pip install hidapi
 
 
 def to_int16(uint16):

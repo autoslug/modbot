@@ -1,7 +1,6 @@
 from inputs import get_gamepad
 import math
 import threading
-import hid
 import time
 from procon import ProCon
 
@@ -73,7 +72,7 @@ class Controller(object):
         return self
 
     def threshold(self, val):
-        return val if abs(val) > self.THRESHOLD else 0
+        return val - 1.0 if abs(val - 1.0) > self.THRESHOLD else 0
 
     def _monitor_controller(self):
         while True:
@@ -249,8 +248,9 @@ class NintendoProController(Controller):
 
 
 if __name__ == "__main__":
-    # joy = Controller()
-    joy = NintendoProController()
+    joy = Controller()
+    # joy = GemXboxController()
+    # joy = NintendoProController()
     while True:
         try:
             print(joy.read())

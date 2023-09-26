@@ -1,5 +1,6 @@
 import time
 import lgpio
+from inputs import UnpluggedError
 
 from Controller import Controller
 
@@ -13,31 +14,48 @@ wheel_in2_pin = 3
 wheel_pwm_pin = 2
 
 freq = 500
+disable = False
+joy = Controller()
 
 h = lgpio.gpiochip_open(0)
+
 lgpio.gpio_claim_output(h, turn_in1_pin)
 lgpio.gpio_claim_output(h, turn_in2_pin)
 lgpio.gpio_claim_output(h, wheel_in1_pin)
 lgpio.gpio_claim_output(h, wheel_in2_pin)
 
-joy = Controller()
-
-disable = False
+exit_count = 0
 
 try:
     while True:
+        
         status = joy.read_self()
 
         if status.X:
+            if not disable:
+                print("disabling!")
             disable = True
-        elif status.A:
+            exit_count += 1
+            print(exit_count)
+        elif status.B:
+            if disable:
+                print("enabling!")
             disable = False
+            exit_count = 0
 
         if disable:
+            lgpio.gpio_write(h, turn_in1_pin, 1)
+            lgpio.gpio_write(h, turn_in2_pin, 1)
+            lgpio.gpio_write(h, wheel_in1_pin, 1)
+            lgpio.gpio_write(h, wheel_in2_pin, 1)
+
+            if exit_count > 50000:
+                break
+
             continue
 
         x = status.LeftJoystickX
-        y = status.LeftJoystickY
+        y = status.RightJoystickY
 
         if x == 0:
             lgpio.gpio_write(h, turn_in1_pin, 1)

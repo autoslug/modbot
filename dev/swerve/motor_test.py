@@ -1,4 +1,4 @@
-import lgpio
+import lgpio # sudo apt install python3-lgpio
 from Controller import Controller
 
 
@@ -32,7 +32,6 @@ try:
                 print("disabling!")
             disable = True
             exit_count += 1
-            print(exit_count)
         elif status.B:
             if disable:
                 print("enabling!")

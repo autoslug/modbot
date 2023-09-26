@@ -1,7 +1,6 @@
-from inputs import get_gamepad
+from inputs import get_gamepad # pip install inputs
 import math
 import threading
-import time
 from procon import ProCon
 
 

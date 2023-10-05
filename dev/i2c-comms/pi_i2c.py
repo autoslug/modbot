@@ -4,7 +4,7 @@ import time
 
 I2C_PRIM = 0x0703
 
-# open i2c devices
+# open i2c devices (sudo apt install i2c-tools)
 i2c_fd = os.open("/dev/i2c-1", os.O_RDWR)
 
 # set the i2c address of pico
@@ -19,4 +19,4 @@ while (True):
     # read data from pico
     incoming_data = os.read(i2c_fd, 3)  # read 3 bytes
     time.sleep(1)
-    print("Received data from Pico: ", list(incoming_data));
+    print("Received data from Pico: ", list(incoming_data))

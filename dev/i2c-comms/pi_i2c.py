@@ -13,10 +13,17 @@ fcntl.ioctl(i2c_fd, I2C_PRIM, pico_address)
 
 # send data to pico
 data = [0x01, 0x02, 0x03]  # example data
-while (True):
-    os.write(i2c_fd, bytes(data))
-    time.sleep(1)
+while True:
+    try:
+        os.write(i2c_fd, bytes(data))
+        time.sleep(0.02)
+        print("Sent data to Pico: ", list(data))
+    except OSError:
+        print("Remote I/O Error")
     # read data from pico
-    incoming_data = os.read(i2c_fd, 3)  # read 3 bytes
-    time.sleep(1)
-    print("Received data from Pico: ", list(incoming_data))
+    try:
+        incoming_data = os.read(i2c_fd, 3)  # read 3 bytes
+        time.sleep(0.02)
+        print("Received data from Pico: ", list(incoming_data))
+    except TimeoutError:
+        print("Timeout Error")

@@ -13,7 +13,7 @@ uint8_t outgoing_data[3] = {0x11, 0x12, 0x13}; // example data
 uint8_t incoming_data[3];
 int data_index = 0;
 
-static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
+static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 {
     switch (event)
     {
@@ -45,6 +45,7 @@ static void i2c_slave_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
         {
             incoming_data[i] = 0x00;
         }
+        printf("reset\n");
         break;
     default:
         break;
@@ -68,7 +69,7 @@ int main()
     gpio_set_function(1, GPIO_FUNC_I2C);
 
     // set i2c address for pico
-    i2c_slave_init(i2c0, 0x08, &i2c_slave_handler);
+    i2c_slave_init(i2c0, 0x08, &i2c_handler);
 
     while (1)
         ;

@@ -1,7 +1,13 @@
-
+#!/usr/bin/env python3
 import numpy as np 
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('Qt5Agg')
 import keyboard
+
+##############################################
+###            USER DEFINED FUNC           ### 
+##############################################
 
 def chassisStateToModuleStates(vel, omega, module_distances) -> list:
     states = []
@@ -25,9 +31,12 @@ def normalizeModules(moduleStates):
     return np.array(new_states)
 
 
-
 def plot_vec(vector, origin=[0,0], color='black'):
     plt.quiver(*origin, vector[0], vector[1], color=color, angles='xy', scale_units='xy', scale=1)
+
+##################################
+###            MAIN            ### 
+##################################
 
 if __name__ == "__main__":
 
@@ -54,10 +63,29 @@ if __name__ == "__main__":
                 break
 
             # get keyboard inputs
-            left = 1 if keyboard.is_pressed('left') else 0
-            right = 1 if keyboard.is_pressed('right') else 0
-            up = 1 if keyboard.is_pressed('up') else 0
-            down = 1 if keyboard.is_pressed('down') else 0
+            if keyboard.is_pressed('left'):
+                left = 1
+                print("Pressed Left")
+            else: 
+                left = 0
+
+            if keyboard.is_pressed('right'):
+                right = 1
+                print("Pressed right")
+            else: 
+                right = 0
+
+            if keyboard.is_pressed('up'):
+                up = 1
+                print("Pressed up")
+            else: 
+                up = 0
+
+            if keyboard.is_pressed('down'):
+                down = 1
+                print("Pressed down")
+            else: 
+                down = 0
 
             # good enough for testing, just very basic 8 directions
             dir = np.array([-1,0])*left + np.array([1,0])*right + np.array([0,1])*up + np.array([0,-1])*down
@@ -102,7 +130,7 @@ if __name__ == "__main__":
             plt.pause(DT)
             plt.clf()
 
-        except:
-            pass
+        except Exception as error:
+            print("")
 
   

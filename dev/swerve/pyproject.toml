@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "swerve"
+version = "0.1.0"
+<<<<<<< HEAD
+description = "Modbot Swerve Simulation"
+=======
+description = "Modbot Swerve Algorithm"
+>>>>>>> e6eedae (Inital Commit)
+authors = ["AutoSlug UCSC <autoslug@ucsc.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+<<<<<<< HEAD
+python = ">=3.9, <3.13"
+numpy = "^1.26.0"
+matplotlib = "^3.8.0"
+keyboard = "^0.13.5"
+pyqt5 = "^5.15.9"
+=======
+python = "^3.10"
+numpy = "^1.26.0"
+matplotlib = "^3.8.0"
+keyboard = "^0.13.5"
+>>>>>>> e6eedae (Inital Commit)
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -98,7 +98,7 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 
 int byte_to_motor_double(int input)
 {
-    return = (double)input / 255.0 * 2.0 - 1.0;
+    return (double)input / 255.0 * 2.0 - 1.0;
 }
 
 int main()

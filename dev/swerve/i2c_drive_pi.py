@@ -1,6 +1,7 @@
 import fcntl
 import os
 import time
+from Controller import Controller
 
 I2C_PRIM = 0x0703
 
@@ -12,10 +13,16 @@ pico_address = 0x08
 fcntl.ioctl(i2c_fd, I2C_PRIM, pico_address)
 
 # send data to pico
-data = [0xFA, 120, 25, 0xFB, 0x00]  # example data
+joy = Controller()
 delay = 0.05
 
 while True:
+    status = joy.read_self()
+    x = status.LeftJoystickX
+    y = status.RightJoystickY
+    joystickswitch = x>0
+    data = [0xFA, int(joystickswitch), int(joystickswitch), 0xFB, 0x00]  # example data
+    
     try:
         os.write(i2c_fd, bytes(data))
         time.sleep(delay)

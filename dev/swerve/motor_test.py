@@ -2,13 +2,13 @@ import lgpio # sudo apt install python3-lgpio
 from Controller import Controller
 
 
-turn_in1_pin = 22
+turn_in1_pin = 17
 turn_in2_pin = 27
-turn_pwm_pin = 17
+turn_pwm_pin = 22
 
-wheel_in1_pin = 4
-wheel_in2_pin = 3
-wheel_pwm_pin = 2
+wheel_in1_pin = 10
+wheel_in2_pin = 9
+wheel_pwm_pin = 11
 
 freq = 500
 disable = True

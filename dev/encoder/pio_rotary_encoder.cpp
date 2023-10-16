@@ -128,9 +128,13 @@ int main()
     while (true)
     {
         sleep_ms(LOOP_TIME);
+        
         int pos = my_encoder.get_rotation();
+
         printf("rotation=%d\n", pos);
         printf("velocity=%d\n", (pos-prev_pos) / LOOP_TIME);
         printf("velocity multicore=%d\n", my_encoder.get_velocity());
+
+        prev_pos = pos;
     }
 }

@@ -47,6 +47,9 @@ public:
         pio_sm_init(pio, sm, 16, &c);
         // enable the sm
         pio_sm_set_enabled(pio, sm, true);
+
+        // set up second core on PICO to run velocity loop
+        multicore_launch_core1(velocityLoop);
     }
 
     // set the current rotation to a specific value
@@ -67,10 +70,6 @@ public:
         return velocity;
     }
 
-    void setup_velocity_multicore(void) {
-        multicore_launch_core1(velocityLoop);
-    }
-
 private:
     void pio_irq_handler()
     {
@@ -88,12 +87,13 @@ private:
         pio0_hw->irq = 3;
     }
 
-    void velocityLoop(int delta_time) {
-        prev_rotation = rotation
+    void velocityLoop() {
+        int delta_time = 50;
+        prev_rotation = rotation;
         while (true) {
             sleep_ms(delta_time);
             velocity = (rotation - prev_rotation) / delta_time;
-            prev_rotation = rotation
+            prev_rotation = rotation;
         }
     }
 
@@ -118,8 +118,6 @@ int main()
     // initialize the rotary encoder rotation as 0
     my_encoder.set_rotation(0);
 
-    my_encoder.setup_velocity_multicore()
-
     const short LOOP_TIME = 50; // in ms
 
     int prev_pos = 0;
@@ -128,7 +126,7 @@ int main()
     while (true)
     {
         sleep_ms(LOOP_TIME);
-        
+
         int pos = my_encoder.get_rotation();
 
         printf("rotation=%d\n", pos);

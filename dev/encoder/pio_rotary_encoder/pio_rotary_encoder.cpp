@@ -36,11 +36,18 @@ public:
         // set shift to left: bits shifted by 'in' enter at the least
         // significant bit (LSB), no autopush
         sm_config_set_in_shift(&c, false, false, 0);
+
+
         // set the IRQ handler
-        irq_set_exclusive_handler(PIO0_IRQ_0, this->pio_irq_handler);
+        irq_set_exclusive_handler(PIO0_IRQ_0, pio_irq_handler_0);
         // enable the IRQ
         irq_set_enabled(PIO0_IRQ_0, true);
+
+        // gpio_set_irq_enabled_with_callback(21, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, &gpio_callback);
+        // gpio_set_irq_enabled(22, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+
         pio0_hw->inte0 = PIO_IRQ0_INTE_SM0_BITS | PIO_IRQ0_INTE_SM1_BITS;
+        
         // init the sm.
         // Note: the program starts after the jump table -> initial_pc = 16
         pio_sm_init(pio, sm, 16, &c);
@@ -48,7 +55,7 @@ public:
         pio_sm_set_enabled(pio, sm, true);
 
         // set up second core on PICO to run velocity loop
-        multicore_launch_core1(this->velocityLoop);
+        // multicore_launch_core1(velocityLoop);
     }
 
     // set the current rotation to a specific value
@@ -69,8 +76,16 @@ public:
         return velocity;
     }
 
+    // non-blocking step, call every delta_time ms
+    static void velocityLoopStep(int delta_time)
+    {
+        velocity = ((float)(rotation - prev_rotation)) / ((float)delta_time);
+        prev_rotation = rotation;
+    }
+
+
 private:
-    static void pio_irq_handler()
+    static void pio_irq_handler_0()
     {
         // test if irq 0 was raised
         if (pio0_hw->irq & 1)
@@ -86,17 +101,22 @@ private:
         pio0_hw->irq = 3;
     }
 
-    static void velocityLoop()
-    {
-        int delta_time = 50;
-        prev_rotation = rotation;
-        while (true)
-        {
-            sleep_ms(delta_time);
-            velocity = ((float)(rotation - prev_rotation)) / ((float)delta_time);
-            prev_rotation = rotation;
-        }
+    static void gpio_callback(uint gpio, uint32_t events) {
+        printf("%d\n", gpio)
     }
+ 
+
+    // for running the velocity loop on another core, just pass this function
+    // static void velocityLoop()
+    // {
+    //     int delta_time = 50;
+    //     prev_rotation = rotation;
+    //     while (true)
+    //     {
+    //         sleep_ms(delta_time)
+    //         velocityLoopStep(delta_time)
+    //     }
+    // }
 
     // the pio instance
     PIO pio;
@@ -119,12 +139,14 @@ int main()
 {
     // needed for printf
     stdio_init_all();
-    // the A of the rotary encoder is connected to GPIO 16, B to GPIO 17
-    RotaryEncoder my_encoder(16);
+    // the A of the rotary encoder is connected to GPIO 14, B to GPIO 15
+    RotaryEncoder my_encoder(14);
     // initialize the rotary encoder rotation as 0
     my_encoder.set_rotation(0);
 
-    const short LOOP_TIME = 50; // in ms
+    const short LOOP_TIME = 20; // in ms
+
+    const float TICKS_PER_DEGREE = 374.0 / 360.0;
 
     // infinite loop to print the current rotation
     while (true)
@@ -132,8 +154,9 @@ int main()
         sleep_ms(LOOP_TIME);
 
         int pos = my_encoder.get_rotation();
+        my_encoder.velocityLoopStep(LOOP_TIME);
 
         printf("rotation=%d\n", pos);
-        printf("velocity=%f\n", my_encoder.get_velocity());
+        printf("velocity=%f\n", my_encoder.get_velocity() / TICKS_PER_DEGREE * 1000.0);
     }
 }

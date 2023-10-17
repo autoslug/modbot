@@ -8,7 +8,6 @@
 
 #include "pico/multicore.h"
 
-
 // class to read the rotation of the rotary encoder
 class RotaryEncoder
 {
@@ -38,7 +37,7 @@ public:
         // significant bit (LSB), no autopush
         sm_config_set_in_shift(&c, false, false, 0);
         // set the IRQ handler
-        irq_set_exclusive_handler(PIO0_IRQ_0, pio_irq_handler);
+        irq_set_exclusive_handler(PIO0_IRQ_0, this->pio_irq_handler);
         // enable the IRQ
         irq_set_enabled(PIO0_IRQ_0, true);
         pio0_hw->inte0 = PIO_IRQ0_INTE_SM0_BITS | PIO_IRQ0_INTE_SM1_BITS;
@@ -49,7 +48,7 @@ public:
         pio_sm_set_enabled(pio, sm, true);
 
         // set up second core on PICO to run velocity loop
-        multicore_launch_core1(velocityLoop);
+        multicore_launch_core1(this->velocityLoop);
     }
 
     // set the current rotation to a specific value
@@ -65,13 +64,13 @@ public:
     }
 
     // get the current estimated velocity
-    int get_velocity(void)
+    float get_velocity(void)
     {
         return velocity;
     }
 
 private:
-    void pio_irq_handler()
+    static void pio_irq_handler()
     {
         // test if irq 0 was raised
         if (pio0_hw->irq & 1)
@@ -87,12 +86,14 @@ private:
         pio0_hw->irq = 3;
     }
 
-    void velocityLoop() {
+    static void velocityLoop()
+    {
         int delta_time = 50;
         prev_rotation = rotation;
-        while (true) {
+        while (true)
+        {
             sleep_ms(delta_time);
-            velocity = (rotation - prev_rotation) / delta_time;
+            velocity = ((float)(rotation - prev_rotation)) / ((float)delta_time);
             prev_rotation = rotation;
         }
     }
@@ -102,12 +103,17 @@ private:
     // the state machine
     uint sm;
     // the current location of rotation
-    int rotation = 0;
+    static int rotation;
     // the last velocity loop rotation recorded
-    int prev_rotation = 0;
+    static int prev_rotation;
     // the current estimated velocity
-    int velocity = 0;
+    static float velocity;
 };
+
+// Initialize static member of class Rotary_encoder
+int RotaryEncoder::rotation = 0;
+int RotaryEncoder::prev_rotation = 0;
+float RotaryEncoder::velocity = 0;
 
 int main()
 {
@@ -120,8 +126,6 @@ int main()
 
     const short LOOP_TIME = 50; // in ms
 
-    int prev_pos = 0;
-
     // infinite loop to print the current rotation
     while (true)
     {
@@ -130,9 +134,6 @@ int main()
         int pos = my_encoder.get_rotation();
 
         printf("rotation=%d\n", pos);
-        printf("velocity=%d\n", (pos-prev_pos) / LOOP_TIME);
-        printf("velocity multicore=%d\n", my_encoder.get_velocity());
-
-        prev_pos = pos;
+        printf("velocity=%f\n", my_encoder.get_velocity());
     }
 }

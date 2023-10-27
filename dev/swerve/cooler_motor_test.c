@@ -6,8 +6,8 @@
 #define turn_in2_pin 5 // 1B, backward direction
 
 #define motor_pwm_pin 9 //2A, 2B take up by motor speed
-#define turn_channel 0 // 2A, turn motor speed
-#define wheel_channel 1 // 2B, wheel motor speed
+#define turn_channel 9 // 2A, turn motor speed
+#define wheel_channel 8 // 2B, wheel motor speed
 
 #define wheel_in1_pin 6 // 3A, forward direction
 #define wheel_in2_pin 7 // 3B, backard direction

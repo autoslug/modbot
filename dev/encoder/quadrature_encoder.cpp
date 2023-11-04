@@ -38,6 +38,7 @@
 const float ROT_PER_TICK = 1.0 / (4 * 374.0);
 // TODO: update pulley ratio
 const float PULLEY_RATIO = 0.3185 / 1.528;
+const float DEG_PER_ROT = 360.0;
 
 class Encoder
 {
@@ -66,7 +67,7 @@ public:
     // @param delta_time the time, in miliseconds, since last calling update
     void update(int delta_time)
     {
-        pos = quadrature_encoder_get_count(pio, sm) * ratio;
+        pos = quadrature_encoder_get_count(pio, sm) * ratio * DEG_PER_ROT;
         velocity = ((prev_pos - pos) / delta_time) * 1000;
         prev_pos = pos;
     }

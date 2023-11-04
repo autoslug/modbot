@@ -82,6 +82,7 @@ if __name__ == "__main__":
                 # x' = x*cos(theta) - y*sin(theta)
                 # y' = x*sin(theta) + y*cos(theta)
                 # where theta is the rotation angle, but we can use left_x and left_y as sin(theta) and cos(theta)
+                # https://academo.org/demos/rotation-about-point/
                 move = np.array(
                     [-1.0 * y * left_x + x * left_y, x * left_x + y * left_y]
                 )

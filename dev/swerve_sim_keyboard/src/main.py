@@ -6,6 +6,16 @@ import matplotlib.pyplot as plt
 matplotlib.use("Qt5Agg")
 import keyboard
 
+
+#################################
+## IMPORTANT: DEPRECATED FILE
+## See swerve_sim_joystick
+#################################
+
+
+
+
+
 ##############################################
 ###            USER DEFINED FUNC           ###
 ##############################################

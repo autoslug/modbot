@@ -11,6 +11,11 @@ def perpendicular(vec):
     return np.array([-vec[1], vec[0]])
 
 
+# NOTE: make sure to account for max motor speed when programming real motors, and normalize
+# for example, if the swerve math commands one motor to spin higher than it's max speed, 
+# then it will only spin at the max speed, thus making the ratio of motor powers wrong and the robot will move wrong
+
+
 if __name__ == "__main__":
     # joy = Gem_Xbox_Controller()
     # joy = Nintendo_Pro_Controller()

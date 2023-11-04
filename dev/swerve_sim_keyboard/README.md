@@ -1,5 +1,5 @@
 ### ModBot - Swerve Algorithm
-## Enviornment setup
+## Environment setup
 For setting up any python project and to avoid "It works on my machine"! conversations..
 
 The following commands are for Debian based systems, but should work apporpriatley with WSL (Windows), OSX, and other Linux distros.

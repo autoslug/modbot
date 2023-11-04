@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <stdexcept>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/timer.h"
@@ -32,83 +33,111 @@
 // encoder count updated and because of that it supports very high step rates.
 //
 
+// 374 pulses per revolution (from the description at https://www.dfrobot.com/product-1462.html)
+// 4x encoding bc quadrature (?)
+const float ROT_PER_TICK = 1.0 / (4 * 374.0);
+// TODO: update pulley ratio
+const float PULLEY_RATIO = 0.3185 / 1.528;
+
 class Encoder
 {
 public:
-    Encoder(uint pinA, uint sm, PIO pio, uint offset)
+    // Create an encoder. Reccommended NOT to use this class, use EncoderFactory::createEncoder()
+    // @param pinA the pin that encoder A channel is connected to, the B channel should connect to the next pin
+    // @param sm the state machine to keep track of the encoder, 0-3
+    // @param which pio
+    Encoder(uint pinA, uint sm, PIO pio, float ratio, bool addProgram = true)
     {
         this->pio = pio;
         this->sm = sm;
+        this->ratio = ratio;
+
+        uint offset = 0;
+
+        // we don't really need to keep the offset, as this program must be loaded
+        // at offset 0
+        if (addProgram)
+            uint offset = pio_add_program(pio, &quadrature_encoder_program);
+
         quadrature_encoder_program_init(pio, sm, offset, pinA, 0);
     }
 
+    // updates the pos and velocity, call periodically.
+    // @param delta_time the time, in miliseconds, since last calling update
     void update(int delta_time)
     {
-        pos = quadrature_encoder_get_count(pio, sm);
-        velocity = ((float)(prev_pos - pos)) / delta_time * 360.0 / 374.0 * 1000.0;
+        pos = quadrature_encoder_get_count(pio, sm) * ratio;
+        velocity = ((prev_pos - pos) / delta_time) * 1000;
         prev_pos = pos;
     }
 
-    int get_pos()
+    // get position of wheel in rotations. resets on init.
+    // update() must be called preiodically for this to be accurate
+    float get_pos()
     {
         return pos;
     }
 
+    // get velocity of wheel in rotations per second.
+    // update() must be called preiodically for this to be accurate
     float get_velocity()
     {
         return velocity;
     }
 
 private:
-    int prev_pos, pos;
+    float prev_pos, pos;
     float velocity;
+    float ratio;
     PIO pio;
     uint sm;
 };
 
-int
-main()
+class EncoderFactory
 {
-    // int new_value_steer, delta_steer, old_value_steer = 0;
-    // int new_value_drive, delta_drive, old_value_drive = 0;
+public:
+    // Create an encoder, automatically configuring the state machine and pio.
+    // @param pinA the A encoder channel, the B channel should be connected to the next pin
+    // @param ratio the ratio by which to multiply encoder outputs. ratio of 1 results in tick / sec
+    static Encoder createEncoder(uint pinA, float ratio)
+    {
+        if (encoder_count > 7)
+        {
+            throw std::out_of_range("reached encoder limit of 8");
+        }
 
-    // Base pin to connect the A phase of the encoder.
-    // The B phase must be connected to the next pin
+        uint sm = encoder_count % 4;
+        PIO pio = encoder_count < 4 ? pio0 : pio1;
+
+        encoder_count++;
+        return Encoder(pinA, sm, pio, ratio, sm == 0);
+    }
+
+private:
+    static uint encoder_count;
+};
+
+uint EncoderFactory::encoder_count = 0;
+
+int main()
+{
+    stdio_init_all();
+
+    // Base pin to connect the A phase of the encoder (yellow wire).
+    // The B phase must be connected to the next pin (green wire)
     const uint PIN_STEER = 14;
     const uint PIN_DRIVE = 16;
 
-    stdio_init_all();
-
-    // PIO pio = pio0;
-    const uint sm_steer = 0;
-    const uint sm_drive = 1;
-
-    // we don't really need to keep the offset, as this program must be loaded
-    // at offset 0
-    uint offset0 = pio_add_program(pio0, &quadrature_encoder_program);
-    // quadrature_encoder_program_init(pio0, sm_steer, offset0, PIN_STEER, 0);
-    // quadrature_encoder_program_init(pio0, sm_drive, offset0, PIN_DRIVE, 0);
-    Encoder steer = Encoder(PIN_STEER, sm_steer, pio0, offset0);
-    Encoder drive = Encoder(PIN_DRIVE, sm_drive, pio0, offset0);
+    Encoder steer = EncoderFactory::createEncoder(PIN_STEER, ROT_PER_TICK * PULLEY_RATIO);
+    Encoder drive = EncoderFactory::createEncoder(PIN_DRIVE, ROT_PER_TICK);
 
     while (1)
     {
-        // note: thanks to two's complement arithmetic delta will always
-        // be correct even when new_value wraps around MAXINT / MININT
-        // new_value_steer = quadrature_encoder_get_count(pio0, sm_steer);
-        // new_value_drive = quadrature_encoder_get_count(pio0, sm_drive);
-
-        // delta_steer = new_value_steer - old_value_steer;
-        // delta_drive = new_value_drive - old_value_drive;
-
-        // old_value_steer = new_value_steer;
-        // old_value_drive = new_value_drive;
-
         steer.update(20);
         drive.update(20);
 
-        printf("steer position %8d, velocity %6f\n", steer.get_pos(), steer.get_velocity());
-        printf("drive position %8d, velocity %6f\n", drive.get_pos(), drive.get_velocity());
+        printf("steer position %8f, velocity %6f\n", steer.get_pos(), steer.get_velocity());
+        printf("drive position %8f, velocity %6f\n", drive.get_pos(), drive.get_velocity());
         sleep_ms(20);
     }
 }

@@ -17,47 +17,45 @@
 #define wheel_in1_pin 6 // 3A, forward direction
 #define wheel_in2_pin 7 // 3B, backard direction
 
-#define freq 500 // note: use clock management frequencies to set frequency
-#define duty_cycle 1
-#define count_max 65535
+#define count_max 65535 // number of counts in a cycle --> 1/count_max = freq
 
-void setup()
-{ // setup pins for pwm functions
+int main()
+{
+    // setup stdio for printing
     stdio_init_all();
+
+    // setup pins for pwm functions
     gpio_init(turn_in1_pin);
     gpio_init(turn_in2_pin);
     gpio_init(wheel_in1_pin);
     gpio_init(wheel_in2_pin);
 
-    // check if default output signal is 0, for now put this in
-    gpio_put(turn_in1_pin, 0);
-    gpio_put(turn_in2_pin, 0);
-    gpio_put(wheel_in1_pin, 0);
-    gpio_put(wheel_in2_pin, 0);
-
+    // set non-pwm pins to output
     gpio_set_dir(turn_in1_pin, GPIO_OUT);
     gpio_set_dir(turn_in2_pin, GPIO_OUT);
     gpio_set_dir(wheel_in1_pin, GPIO_OUT);
     gpio_set_dir(wheel_in2_pin, GPIO_OUT);
 
+    // setup pwm
     gpio_set_function(turn_pwm_pin, GPIO_FUNC_PWM);
     gpio_set_function(wheel_pwm_pin, GPIO_FUNC_PWM);
+
+    // set pwm slice and channels
     pwm_set_wrap(pwm_slice, count_max);
     pwm_set_chan_level(pwm_slice, turn_channel, 0);
     pwm_set_chan_level(pwm_slice, wheel_channel, 0);
 
     pwm_set_enabled(pwm_slice, true);
-}
 
-int main()
-{
-    setup();
+    // set initial x (turn) and y (wheel) values
     double x = 0;
     double y = 0.2;
 
+    // flip values used for oscillate direction between 1 and -1
     int xflip = 0;
     int yflip = 0;
 
+    // step size for oscillation
     float step = 0.001;
 
     while (1)
@@ -65,7 +63,6 @@ int main()
         // turn motor
         if (x == 0)
         { // in1 and in2 are high
-            // pwm_set_gpio_level (3, count_max); this method would work, but is iffy, as setting the count value for individual pins update next cycle
             gpio_put(turn_in1_pin, 1);
             gpio_put(turn_in2_pin, 1);
         }
@@ -97,25 +94,15 @@ int main()
             gpio_put(wheel_in1_pin, 0);
         }
 
+        // set pwm duty cycle
         pwm_set_chan_level(pwm_slice, turn_channel, abs((int)(x * count_max)));
         pwm_set_chan_level(pwm_slice, wheel_channel, abs((int)(y * count_max)));
-        // printf("hello world\n");
-        if (xflip)
-        {
-            x -= step;
-        }
-        else
-        {
-            x += step;
-        }
-        if (yflip)
-        {
-            y -= step;
-        }
-        else
-        {
-            y += step;
-        }
+
+        // increment x and y
+        x += step * (xflip ? -1 : 1);
+        y += step * (yflip ? -1 : 1);
+
+        // flip x and y if they reach 1 or -1
         if (x == 1 || x == -1)
             xflip = !(xflip);
         if (y == 1 || y == -1)

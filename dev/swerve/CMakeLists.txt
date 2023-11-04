@@ -37,6 +37,7 @@ target_link_libraries(i2c_drive_pico
         pico_stdlib
         pico_i2c_slave
         hardware_i2c
+        hardware_pwm
         )
 
 # Add the standard include files to the build

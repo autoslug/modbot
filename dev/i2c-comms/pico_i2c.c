@@ -9,7 +9,7 @@
 const uint LED_PIN = PICO_DEFAULT_LED_PIN;
 #endif
 
-uint8_t outgoing_data[3] = {0x11, 0x12, 0x13}; // example data
+uint8_t outgoing_data[4] = {0x11, 0x12, 0x13, 0x14}; // example data
 uint8_t incoming_data[3];
 int data_index = 0;
 
@@ -34,7 +34,7 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
         printf("Sent data %d: 0x%02X\n ", data_index, outgoing_data[data_index]);
         gpio_put(LED_PIN, 0);
         data_index++;
-        if (data_index > 2)
+        if (data_index > 3)
         {
             data_index = 0;
         }

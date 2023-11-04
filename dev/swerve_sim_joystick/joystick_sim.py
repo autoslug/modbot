@@ -69,9 +69,9 @@ if __name__ == "__main__":
             if not joy_input.RightBumper:
                 move = np.array([left_x, left_y]) * 1.0
                 rotate = 0.1 * triggers
-            elif (
-                dist > R
-            ):  # if right bumper is pressed and freeze pos is not "inside" robot, rotate robot around freeze pos
+
+            # if right bumper is pressed and freeze pos is not "inside" robot, rotate robot around freeze pos
+            elif dist > R:
                 # calculate vector from freeze to center pos
                 x = (freeze_pos[0] - center_pos[0]) / dist
                 y = (freeze_pos[1] - center_pos[1]) / dist

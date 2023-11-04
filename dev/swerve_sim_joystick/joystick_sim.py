@@ -20,9 +20,6 @@ if __name__ == "__main__":
     # dt, the delta time of the "animation"
     DT = 0.001
 
-    angle_1 = 3.0 / 6.0 * np.pi
-    angle_2 = 7.0 / 6.0 * np.pi
-    angle_3 = 11.0 / 6.0 * np.pi
     center_pos = np.array([0.0, 0.0])
     module_dirs = np.array([3.0, 7.0, 11.0]) / 6.0 * np.pi
     module_pos = np.array(

@@ -24,7 +24,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(i2c_drive_pico cooler_motor_test.c )
+add_executable(i2c_drive_pico i2c_drive_pico.c )
 
 pico_set_program_name(i2c_drive_pico "i2c_drive_pico")
 pico_set_program_version(i2c_drive_pico "0.1")

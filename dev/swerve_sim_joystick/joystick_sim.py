@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# from Controller import GemXboxController
-from Controller import NintendoProController
-from Controller import Controller
+# from Controller import Gem_Xbox_Controller
+from Controller import Nintendo_Pro_Controller
+from Controller import PS4_Controller
 
 
 # return the vector perpendicular to the given vector
@@ -12,11 +12,11 @@ def perpendicular(vec):
 
 
 if __name__ == "__main__":
-    # joy = GemXboxController()
-    # joy = NintendoProController()
-    joy = Controller()
+    # joy = Gem_Xbox_Controller()
+    # joy = Nintendo_Pro_Controller()
+    joy = PS4_Controller()
 
-    rumble = type(joy) == NintendoProController
+    rumble = type(joy) == Nintendo_Pro_Controller
 
     # robot radius
     R = 5

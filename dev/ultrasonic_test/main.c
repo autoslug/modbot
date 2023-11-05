@@ -1,4 +1,4 @@
-#include <stdio.h>
+/*#include <stdio.h>
 #include <math.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
@@ -47,7 +47,56 @@ int main()
         //     Serial.print(distance);
         //     Serial.println(" cm");
         // }
-        printf("%ld\n", duration);
+        printf("%ld, %ld\n", duration, distance);
         sleep_ms(500);
     }
+}*/
+
+#include <stdio.h>
+#include "pico/stdlib.h"
+#include "hardware/gpio.h"
+#include "hardware/uart.h"
+
+/// \tag::hello_uart[]
+
+#define UART_ID uart1
+#define BAUD_RATE 9600
+
+// We are using pins 0 and 1, but see the GPIO function select table in the
+// datasheet for information on which other pins can be used.
+#define UART_TX_PIN 4
+#define UART_RX_PIN 5
+
+int main() {
+    stdio_init_all();
+    // Set up our UART with the required speed.
+    uart_init(UART_ID, BAUD_RATE);
+
+    // Set the TX and RX pins by using the function select on the GPIO
+    // Set datasheet for more information on function select
+    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+
+    // Use some the various UART functions to send out data
+    // In a default system, printf will also output via the default UART
+
+    // Send out a character without any conversions
+    char buff[5];
+    printf("here\n");
+    while(1){
+        printf("WHILE\n");
+        sleep_ms(100);
+        uart_putc_raw(UART_ID, 0x55);
+        // // uart_read_blocking(UART_ID, buff, 2);
+        // printf("%c\n", buff[0]);
+        char a = uart_getc(UART_ID);
+        printf("%u\n", a);
+        // printf("%u\n", uart_getc(UART_ID));
+    }
+
+    // Send out a character but do CR/LF conversions
+    //uart_putc(UART_ID, 'B');
+
+    // Send out a string, with CR/LF conversions
+    //uart_puts(UART_ID, " Hello, UART!\n");
 }

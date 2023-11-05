@@ -44,7 +44,8 @@ target_include_directories(ultrasonic_test PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(ultrasonic_test 
-        hardware_i2c
+        hardware_gpio
+        hardware_uart
         )
 
 pico_add_extra_outputs(ultrasonic_test)

@@ -91,9 +91,19 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 }
 
 // Convert byte to motor double
-int byte_to_motor_double(int input)
-{
-    return (double)input / 255.0 * 2.0 - 1.0;
+// int byte_to_motor_double(int input)
+// {
+//     return (double)input / 255.0 * 2.0 - 1.0;
+// }
+
+void byte_to_motor_double(float& output, int arr[], int num){//output float to assign byte to, array of byte input, number/position of byte in float
+    char byte = 0b00000000; //start with empty byte
+    for(int i=0; i < 8; i++){
+        byte = (char)(byte | arr[i]); //since byte is empty and we only have 0 or 1, we can assign to lsb using | operator which doesn't modify the rest of the byte
+        if(i!=7) //dont shift on first value, as you are directly writing from the array into byte
+        byte = byte<<1; //shift lsb to the left for new bit in array
+    }
+    *((unsigned char*)(&output)+num) = byte;//cast reference of output to char (shift to 1 byte), set value directly
 }
 
 int main()
@@ -116,10 +126,14 @@ int main()
             printf("Input: ");
             for (int i = 0; i < I2C_DATA_LENGTH - 2; i++)
             {
+                test = test | input[i];
+                test << 1;
                 printf("%f ", input[i]);
+                byte_to_motor_double(input);
             }
             printf("\n");
         }
+        
     }
 
     return 0;

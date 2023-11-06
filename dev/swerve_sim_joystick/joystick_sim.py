@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
-# from Controller import GemXboxController
-from Controller import NintendoProController
+from Controller import (Gem_Xbox_Controller, Nintendo_Pro_Controller,
+                        PS4_Controller)
 
 
 # return the vector perpendicular to the given vector
@@ -10,11 +9,17 @@ def perpendicular(vec):
     return np.array([-vec[1], vec[0]])
 
 
-if __name__ == "__main__":
-    # joy = GemXboxController()
-    joy = NintendoProController()
+# NOTE: make sure to account for max motor speed when programming real motors, and normalize
+# for example, if the swerve math commands one motor to spin higher than it's max speed,
+# then it will only spin at the max speed, thus making the ratio of motor powers wrong and the robot will move wrong
 
-    rumble = type(joy) == NintendoProController
+
+if __name__ == "__main__":
+    # joy = Gem_Xbox_Controller()
+    # joy = Nintendo_Pro_Controller()
+    joy = PS4_Controller()
+
+    rumble = type(joy) == Nintendo_Pro_Controller
 
     # robot radius
     R = 5
@@ -22,10 +27,6 @@ if __name__ == "__main__":
     DT = 0.001
 
     # initial robot state
-    # 3 modules, 120 degrees apart
-    angle_1 = 3.0 / 6.0 * np.pi
-    angle_2 = 7.0 / 6.0 * np.pi
-    angle_3 = 11.0 / 6.0 * np.pi
     center_pos = np.array([0.0, 0.0])  # center position
     module_dirs = (
         np.array([3.0, 7.0, 11.0]) / 6.0 * np.pi
@@ -48,7 +49,7 @@ if __name__ == "__main__":
                 print("Exiting")
                 break
 
-            # TODO: should replace this by standardizing inputs in the Controller.py class
+            # TODO: should replace this by standardizing inverts in the Controller.py class
             inverts = [False, False, False, False]  # Nintendo Pro Controller
             # inverts = [False, True, True] # Gem Xbox Controller
 
@@ -71,9 +72,9 @@ if __name__ == "__main__":
             if not joy_input.RightBumper:
                 move = np.array([left_x, left_y]) * 1.0
                 rotate = 0.1 * triggers
-            elif (
-                dist > R
-            ):  # if right bumper is pressed and freeze pos is not "inside" robot, rotate robot around freeze pos
+
+            # if right bumper is pressed and freeze pos is not "inside" robot, rotate robot around freeze pos
+            elif dist > R:
                 # calculate vector from freeze to center pos
                 x = (freeze_pos[0] - center_pos[0]) / dist
                 y = (freeze_pos[1] - center_pos[1]) / dist

@@ -1,6 +1,9 @@
 # Created by https://www.toptal.com/developers/gitignore/api/c++,c,python,linux,macos,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=c++,c,python,linux,macos,windows
 
+# IDE Related
+.idea
+
 ### C ###
 # Prerequisites
 *.d

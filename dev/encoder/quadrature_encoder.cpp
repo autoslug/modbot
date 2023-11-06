@@ -34,9 +34,9 @@
 //
 
 // 374 pulses per revolution (from the description at https://www.dfrobot.com/product-1462.html)
-// 4x encoding bc quadrature (?)
+// 4x because the encoder has 2 sensors each w/ rising & falling edges, so each pulse results in
+// 4 counts received (https://deltamotion.com/support/webhelp/rmctools/Controller_Features/Transducer_Basics/Quadrature_Fundamentals.htm)
 const float ROT_PER_TICK = 1.0 / (4 * 374.0);
-// TODO: update pulley ratio
 const float PULLEY_RATIO = 0.3185 / 1.528;
 const float DEG_PER_ROT = 360.0;
 
@@ -47,7 +47,8 @@ public:
     // @param pinA the pin that encoder A channel is connected to, the B channel should connect to the next pin
     // @param sm the state machine to keep track of the encoder, 0-3
     // @param which pio
-    Encoder(uint pinA, uint sm, PIO pio, float ratio, bool addProgram = true)
+    // @param ratio the ratio by which to multiply encoder ticks
+    Encoder(uint pinA, uint sm, PIO pio, float ratio = 1.0, bool addProgram = true)
     {
         this->pio = pio;
         this->sm = sm;
@@ -72,15 +73,15 @@ public:
         prev_pos = pos;
     }
 
-    // get position of wheel in rotations. resets on init.
-    // update() must be called preiodically for this to be accurate
+    // get position of wheel in ticks, multiplied by any provided ratio. resets on init.
+    // update() must be called periodically for this to be accurate
     float get_pos()
     {
         return pos;
     }
 
-    // get velocity of wheel in rotations per second.
-    // update() must be called preiodically for this to be accurate
+    // get velocity of wheel in ticks per second, multiplied by any provided ratio.
+    // update() must be called periodically for this to be accurate
     float get_velocity()
     {
         return velocity;
@@ -100,7 +101,7 @@ public:
     // Create an encoder, automatically configuring the state machine and pio.
     // @param pinA the A encoder channel, the B channel should be connected to the next pin
     // @param ratio the ratio by which to multiply encoder outputs. ratio of 1 results in tick / sec
-    static Encoder createEncoder(uint pinA, float ratio)
+    static Encoder createEncoder(uint pinA, float ratio = 1.0)
     {
         if (encoder_count > 7)
         {
@@ -129,8 +130,8 @@ int main()
     const uint PIN_STEER = 14;
     const uint PIN_DRIVE = 16;
 
-    Encoder steer = EncoderFactory::createEncoder(PIN_STEER, ROT_PER_TICK * PULLEY_RATIO);
-    Encoder drive = EncoderFactory::createEncoder(PIN_DRIVE, ROT_PER_TICK);
+    Encoder steer = EncoderFactory::createEncoder(PIN_STEER, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
+    Encoder drive = EncoderFactory::createEncoder(PIN_DRIVE, ROT_PER_TICK * DEG_PER_ROT);
 
     while (1)
     {

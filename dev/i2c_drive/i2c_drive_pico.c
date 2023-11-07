@@ -96,14 +96,21 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 //     return (double)input / 255.0 * 2.0 - 1.0;
 // }
 
-void byte_to_motor_double(float& output, int arr[], int num){//output float to assign byte to, array of byte input, number/position of byte in float
+void byte_to_motor_float(float& output, int arr[], int num){//output float to assign byte to, array of byte input, number/position of byte in float
     char byte = 0b00000000; //start with empty byte
     for(int i=0; i < 8; i++){
         byte = (char)(byte | arr[i]); //since byte is empty and we only have 0 or 1, we can assign to lsb using | operator which doesn't modify the rest of the byte
         if(i!=7) //dont shift on first value, as you are directly writing from the array into byte
         byte = byte<<1; //shift lsb to the left for new bit in array
     }
-    *((unsigned char*)(&output)+num) = byte;//cast reference of output to char (shift to 1 byte), set value directly
+    //test for endianess
+    int x = 1;
+    char *y = (char*)&x;   
+    //cast reference of output to char (shift to 1 byte), set value directly
+    if(*y)
+         *((unsigned char*)(&output)+(3-num)) = byte; //assignment based on little endianess
+    else
+        *((unsigned char*)(&output)+num) = byte; //assignment based on big endianess
 }
 
 int main()

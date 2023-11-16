@@ -95,26 +95,29 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 // {
 //     return (double)input / 255.0 * 2.0 - 1.0;
 // }
-char array_to_byte(int bytearray[]){
-    char byte = 0b00000000; //start with empty byte
-    for(int i=0; i < 8; i++){
-        byte = (char)(byte | arr[i]); //since byte is empty and we only have 0 or 1, we can assign to lsb using | operator which doesn't modify the rest of the byte
-        if(i!=7) //dont shift on first value, as you are directly writing from the array into byte
-        byte = byte<<1; //shift lsb to the left for new bit in array
+char array_to_byte(int bytearray[])
+{
+    char byte = 0b00000000; // start with empty byte
+    for (int i = 0; i < 8; i++)
+    {
+        byte = (char)(byte | bytearray[i]); // since byte is empty and we only have 0 or 1, we can assign to lsb using | operator which doesn't modify the rest of the byte
+        if (i != 7)                         // dont shift on first value, as you are directly writing from the array into byte
+            byte = byte << 1;               // shift lsb to the left for new bit in array
     }
     return byte;
 }
 
-void byte_to_motor_float(float& output, int arr[], int num){//output float to assign byte to, array of byte input, number/position of byte in float
+void byte_to_motor_float(float *output, int arr[], int num)
+{ // output float to assign byte to, array of byte input, number/position of byte in float
     char byte = array_to_byte(arr);
-    //test for endianess
+    // test for endianess
     int x = 1;
-    char *y = (char*)&x;   
-    //cast reference of output to char (shift to 1 byte), set value directly
-    if(*y)
-         *((unsigned char*)(&output)+(3-num)) = byte; //assignment based on little endianess
+    char *y = (char *)&x;
+    // cast reference of output to char (shift to 1 byte), set value directly
+    if (*y)
+        *((unsigned char *)(output) + (3 - num)) = byte; // assignment based on little endianess
     else
-        *((unsigned char*)(&output)+num) = byte; //assignment based on big endianess
+        *((unsigned char *)(output) + num) = byte; // assignment based on big endianess
 }
 
 int byteoffset = 0;
@@ -140,24 +143,33 @@ int main()
         printf("Status: %d\n", input_status);
         if (input_status == 1)
         {
-            //Byte order is 0xFF, joyX, joyY, 0xFb, 0x00, looking when 0xFF is read and ending when 0xFb is read
-            if(array_to_byte(input)==0xFF){
-                printf("Message start") 
+            // print output of array_to_byte(input)
+            printf("Byte: %d\n", array_to_byte(input));
+            // Byte order is 0xFF, joyX, joyY, 0xFb, 0x00, looking when 0xFF is read and ending when 0xFb is read
+            if (array_to_byte(input) == MESSAGE_START)
+            {
+                printf("Message start");
                 read = true;
             }
-            if(read){
-                if(byteoffset < 4){
-                    byte_to_motor_float(joyX, input, byteoffset);
-                }else{
-                    byte_to_motor_float(joyY, input, byteoffset - 4);
+            if (read)
+            {
+                if (byteoffset < 4)
+                {
+                    byte_to_motor_float(&joyX, input, byteoffset);
+                }
+                else
+                {
+                    byte_to_motor_float(&joyY, input, byteoffset - 4);
                 }
                 byteoffset++;
-                if(byteoffset >= 8)
+                if (byteoffset >= 8)
+                {
                     read = false;
+                    byteoffset = 0;
+                }
+                printf("JoyX: %f, JoyY: %f\n", joyX, joyY);
             }
-
         }
-        
     }
 
     return 0;

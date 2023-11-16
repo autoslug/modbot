@@ -24,7 +24,8 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(cooler_motor_test cooler_motor_test.cpp )
+# add_executable(cooler_motor_test cooler_motor_test.cpp )
+add_executable(cooler_motor_test class_motor_test.cpp )
 
 pico_set_program_name(cooler_motor_test "cooler_motor_test")
 pico_set_program_version(cooler_motor_test "0.1")

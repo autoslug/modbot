@@ -11,7 +11,7 @@
 #define I2C_BAUDRATE 100 * 1000
 
 // Define the length of the data packet
-#define I2C_DATA_LENGTH 4
+#define I2C_DATA_LENGTH 10
 
 #define MESSAGE_START 0xFA
 #define MESSAGE_STOP 0xFB
@@ -41,12 +41,14 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
         uint8_t tmp = i2c_read_byte_raw(i2c);
         // Check if the data is valid
         // TODO: probably revert this back to the original, we don't really need the MESSAGE_START stuff
+        printf("Invalid data %x\n", tmp);
         if ((incoming_data[0] == 0x00 && tmp != MESSAGE_START) || data_index >= I2C_DATA_LENGTH)
         {
             break;
         }
         // Store the data
         incoming_data[data_index] = tmp;
+        printf("Data: %d\n", incoming_data[data_index]);
         data_index++;
         // set the event status to received
         last_event = 1;
@@ -82,6 +84,8 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
             data_index = 0;
         }
 
+        printf("Input: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", input[0], input[1], input[2], input[3], input[4], input[5], input[6], input[7], input[8], input[9]);
+
         // set the event status to finished
         last_event = 0;
         break;
@@ -97,11 +101,11 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 // }
 char array_to_byte(int bytearray[])
 {
-    char byte = 0b00000000; // start with empty byte
-    for (int i = 0; i < 8; i++)
+    char byte = 0b0000; // start with empty byte
+    for (int i = 0; i < 4; i++)
     {
         byte = (char)(byte | bytearray[i]); // since byte is empty and we only have 0 or 1, we can assign to lsb using | operator which doesn't modify the rest of the byte
-        if (i != 7)                         // dont shift on first value, as you are directly writing from the array into byte
+        if (i != 3)                         // dont shift on first value, as you are directly writing from the array into byte
             byte = byte << 1;               // shift lsb to the left for new bit in array
     }
     return byte;
@@ -140,7 +144,7 @@ int main()
 
     while (1)
     {
-        printf("Status: %d\n", input_status);
+        // printf("Status: %d\n", input_status);
         if (input_status == 1)
         {
             // print output of array_to_byte(input)

@@ -1,9 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
-# from Controller import Gem_Xbox_Controller
-from Controller import Nintendo_Pro_Controller
-from Controller import PS4_Controller
+from Controller import (Gem_Xbox_Controller, Nintendo_Pro_Controller,
+                        PS4_Controller)
 
 
 # return the vector perpendicular to the given vector
@@ -12,7 +10,7 @@ def perpendicular(vec):
 
 
 # NOTE: make sure to account for max motor speed when programming real motors, and normalize
-# for example, if the swerve math commands one motor to spin higher than it's max speed, 
+# for example, if the swerve math commands one motor to spin higher than it's max speed,
 # then it will only spin at the max speed, thus making the ratio of motor powers wrong and the robot will move wrong
 
 

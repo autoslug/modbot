@@ -29,7 +29,8 @@ int last_event = 0;
 int data_index = 0;
 
 // Buffer for the input data
-int input[I2C_DATA_LENGTH - 2];
+uint8_t input[I2C_DATA_LENGTH - 2];
+float joy[2];
 
 // Handler for I2C events
 static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
@@ -85,6 +86,40 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
         }
 
         printf("Input: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", input[0], input[1], input[2], input[3], input[4], input[5], input[6], input[7], input[8], input[9]);
+        uint32_t tmp_float = 0;
+        for (int i = 3; i > -1; i--)
+        {
+            tmp_float |= input[i];
+            tmp_float = tmp_float << 8;
+        }
+        joy[0] = (float)tmp_float;
+        tmp_float = 0;
+        for (int i = 3; i > -1; i--)
+        {
+            tmp_float |= input[i];
+            tmp_float = tmp_float << 8;
+        }
+        joy[1] = (float)tmp_float;
+
+        printf("JoyX: %f, JoyY: %f\n", joy[0], joy[1]);
+        printf("x JoyX: %x, JoyY: %x\n", joy[0], joy[1]);
+
+        // int byteoffset = 0;
+
+        // if (byteoffset < 4)
+        // {
+        //     byte_to_motor_float(&joy[0], input, byteoffset);
+        // }
+        // else
+        // {
+        //     byte_to_motor_float(&joy[1], input, byteoffset - 4);
+        // }
+        // byteoffset++;
+        // if (byteoffset >= 8)
+        // {
+        //     read = false;
+        //     byteoffset = 0;
+        // }
 
         // set the event status to finished
         last_event = 0;
@@ -99,19 +134,20 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 // {
 //     return (double)input / 255.0 * 2.0 - 1.0;
 // }
-char array_to_byte(int bytearray[])
+char array_to_byte(uint8_t bytearray[])
 {
-    char byte = 0b0000; // start with empty byte
+    // char byte = 0b00000000; // start with empty byte
+    uint32_t byte = 0;
     for (int i = 0; i < 4; i++)
     {
         byte = (char)(byte | bytearray[i]); // since byte is empty and we only have 0 or 1, we can assign to lsb using | operator which doesn't modify the rest of the byte
-        if (i != 3)                         // dont shift on first value, as you are directly writing from the array into byte
-            byte = byte << 1;               // shift lsb to the left for new bit in array
+        if (i != 31)                         // dont shift on first value, as you are directly writing from the array into byte
+            byte = byte << 8;               // shift lsb to the left for new bit in array
     }
     return byte;
 }
 
-void byte_to_motor_float(float *output, int arr[], int num)
+void byte_to_motor_float(float *output, uint8_t arr[], int num)
 { // output float to assign byte to, array of byte input, number/position of byte in float
     char byte = array_to_byte(arr);
     // test for endianess
@@ -145,35 +181,35 @@ int main()
     while (1)
     {
         // printf("Status: %d\n", input_status);
-        if (input_status == 1)
-        {
-            // print output of array_to_byte(input)
-            printf("Byte: %d\n", array_to_byte(input));
-            // Byte order is 0xFF, joyX, joyY, 0xFb, 0x00, looking when 0xFF is read and ending when 0xFb is read
-            if (array_to_byte(input) == MESSAGE_START)
-            {
-                printf("Message start");
-                read = true;
-            }
-            if (read)
-            {
-                if (byteoffset < 4)
-                {
-                    byte_to_motor_float(&joyX, input, byteoffset);
-                }
-                else
-                {
-                    byte_to_motor_float(&joyY, input, byteoffset - 4);
-                }
-                byteoffset++;
-                if (byteoffset >= 8)
-                {
-                    read = false;
-                    byteoffset = 0;
-                }
-                printf("JoyX: %f, JoyY: %f\n", joyX, joyY);
-            }
-        }
+        // if (input_status == 1)
+        // {
+        //     // print output of array_to_byte(input)
+        //     printf("Byte: %d\n", array_to_byte(input));
+        //     // Byte order is 0xFF, joyX, joyY, 0xFb, 0x00, looking when 0xFF is read and ending when 0xFb is read
+        //     if (array_to_byte(input) == MESSAGE_START)
+        //     {
+        //         printf("Message start");
+        //         read = true;
+        //     }
+        //     if (read)
+        //     {
+        //         if (byteoffset < 4)
+        //         {
+        //             byte_to_motor_float(&joyX, input, byteoffset);
+        //         }
+        //         else
+        //         {
+        //             byte_to_motor_float(&joyY, input, byteoffset - 4);
+        //         }
+        //         byteoffset++;
+        //         if (byteoffset >= 8)
+        //         {
+        //             read = false;
+        //             byteoffset = 0;
+        //         }
+        //     }
+        // }
+        // printf("JoyX: %f, JoyY: %f\n", joy[0], joy[1]);
     }
 
     return 0;

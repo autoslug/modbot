@@ -81,16 +81,20 @@ int main() {
     // In a default system, printf will also output via the default UART
 
     // Send out a character without any conversions
-    char buff[5];
-    printf("here\n");
+    char buff[2];
+    // printf("here\n");
     while(1){
-        printf("WHILE\n");
-        sleep_ms(100);
+        // printf("WHILE\n");
         uart_putc_raw(UART_ID, 0x55);
-        // // uart_read_blocking(UART_ID, buff, 2);
-        // printf("%c\n", buff[0]);
-        char a = uart_getc(UART_ID);
-        printf("%u\n", a);
+        sleep_ms(100);
+        uart_read_blocking(UART_ID, buff, 2);
+        printf("%d\n", buff[1] + (buff[0] << 8));
+        // char a = uart_getc(UART_ID);
+        // char b = uart_getc(UART_ID);
+        // char b = 0;
+        // printf("size %d\n", sizeof b);
+        // printf("%d\n", ((int)(b + (a << 8)))/10);
+        sleep_ms(100);
         // printf("%u\n", uart_getc(UART_ID));
     }
 

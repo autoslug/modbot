@@ -32,6 +32,13 @@ int data_index = 0;
 uint8_t input[I2C_DATA_LENGTH - 2];
 float joy[2];
 
+void dump(const void *data, size_t len) {
+    const unsigned char *x = data;
+    printf("%02x", x[0]);
+    for (size_t k = 1; k < len; k++) printf(" %02x", x[k]);
+    puts("");
+}
+
 // Handler for I2C events
 static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 {
@@ -42,9 +49,9 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
         uint8_t tmp = i2c_read_byte_raw(i2c);
         // Check if the data is valid
         // TODO: probably revert this back to the original, we don't really need the MESSAGE_START stuff
-        printf("Invalid data %x\n", tmp);
         if ((incoming_data[0] == 0x00 && tmp != MESSAGE_START) || data_index >= I2C_DATA_LENGTH)
         {
+        printf("Invalid data %x\n", tmp);
             break;
         }
         // Store the data
@@ -87,25 +94,45 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 
         printf("Input: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", input[0], input[1], input[2], input[3], input[4], input[5], input[6], input[7], input[8], input[9]);
         uint32_t tmp_float = 0;
-        for (int i = 3; i > -1; i--)
+        for (int i = 0; i < 4; i++)
         {
-            tmp_float |= input[i];
             tmp_float = tmp_float << 8;
-        }
-        joy[0] = (float)tmp_float;
-        tmp_float = 0;
-        for (int i = 3; i > -1; i--)
-        {
             tmp_float |= input[i];
-            tmp_float = tmp_float << 8;
         }
-        joy[1] = (float)tmp_float;
+        dump(&tmp_float, 4);
+        float jx = *((float*)&tmp_float);
+        printf("tester : <%.3f>\n", jx);
+        printf("len of jx : <%i>\n", sizeof(jx));
 
-        printf("JoyX: %f, JoyY: %f\n", joy[0], joy[1]);
-        printf("x JoyX: %x, JoyY: %x\n", joy[0], joy[1]);
+        // joy[0] = *((float*)&tmp_float);
+        tmp_float = 0;
+        for (int i = 4; i < 8; i++)
+        {
+            tmp_float = tmp_float << 8;
+            tmp_float |= input[i];
+        }
+        dump(&tmp_float, 4);
+        float jy = *((float*)&tmp_float);
+        printf("tester : <%.3f>\n", jy);
+        printf("len of jy : <%i>\n", sizeof(jy));
+        // joy[1] = *((float*)&tmp_float);
+
+        printf("JoyX: %f, JoyY: %f\n", jx, jy);
+        // printf("JoyX: %.3f, JoyY: %.3f\n", joy[0], joy[1]);
+
+        uint32_t tester = 0x3f9d70a4;
+        float f_test;
+        f_test = *((float*)&tester);
+        printf("tester : <%.3f>\n", f_test);
+
+        // printf("x JoyX: %x, JoyY: %x\n", joy[0], joy[1]);
+        // dump(&joy[0], 4);
+        // dump(&joy[1], 4);
+        // float x = *((float*)&0x3f7e0000) ;
+        // dump(&x, 4);
+
 
         // int byteoffset = 0;
-
         // if (byteoffset < 4)
         // {
         //     byte_to_motor_float(&joy[0], input, byteoffset);
@@ -134,7 +161,7 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 // {
 //     return (double)input / 255.0 * 2.0 - 1.0;
 // }
-char array_to_byte(uint8_t bytearray[])
+uint32_t array_to_byte(uint8_t bytearray[])
 {
     // char byte = 0b00000000; // start with empty byte
     uint32_t byte = 0;
@@ -149,7 +176,7 @@ char array_to_byte(uint8_t bytearray[])
 
 void byte_to_motor_float(float *output, uint8_t arr[], int num)
 { // output float to assign byte to, array of byte input, number/position of byte in float
-    char byte = array_to_byte(arr);
+    uint32_t byte = array_to_byte(arr);
     // test for endianess
     int x = 1;
     char *y = (char *)&x;

@@ -171,8 +171,8 @@ int main()
                 if(i!=0)
                     tmp_float<<=8; //preserves order of bits in 64bit int
             }
-            joyX = *(((float*)&tmp_float)+1); //convert to interprit bits as float (32 bits)
-            joyY = *(((float*)&tmp_float));
+            joyX = *(((float*)&tmp_float)); //convert to interprit bits as float (32 bits)
+            joyY = *(((float*)&tmp_float)+1);
             printf("%f   ", joyX);
             printf("%f\n", joyY); //printing floats in console
             tmp_float = 0; //clear float

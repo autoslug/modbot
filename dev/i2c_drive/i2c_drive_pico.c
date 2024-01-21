@@ -2,6 +2,8 @@
 #include <pico/stdlib.h>
 #include <pico/i2c_slave.h>
 #include <hardware/i2c.h>
+#include <stdlib.h>
+#include <hardware/pwm.h>
 
 // Define constants for I2C communication
 #define I2C_PICO_ADDR 0x08
@@ -15,6 +17,26 @@
 
 #define MESSAGE_START 0xFA
 #define MESSAGE_STOP 0xFB
+
+
+// digital low on in# pins indicates direction, both high is no signal
+#define turn_in1_pin 4 // 1A, forward direction
+#define turn_in2_pin 5 // 1B, backward direction
+
+// #define motor_pwm_pin 9 // 2A, 2B take up by motor speed
+#define turn_pwm_pin 9  // 2A, turn motor speed
+#define wheel_pwm_pin 8 // 2B, wheel motor speed
+#define pwm_slice 4
+#define turn_channel PWM_CHAN_B
+#define wheel_channel PWM_CHAN_A
+
+#define wheel_in1_pin 6 // 3A, forward direction
+#define wheel_in2_pin 7 // 3B, backard direction
+
+// #define freq 500 // note: use clock management frequencies to set frequency
+// #define duty_cycle 1
+#define count_max 65535
+
 
 // Buffer for incoming data
 uint8_t incoming_data[I2C_DATA_LENGTH];
@@ -30,16 +52,6 @@ int data_index = 0;
 
 // Buffer for the input data
 uint8_t input[I2C_DATA_LENGTH - 2];
-float joy[2];
-
-void dump(const void *data, size_t len)
-{
-    const unsigned char *x = data;
-    printf("%02x", x[0]);
-    for (size_t k = 1; k < len; k++)
-        printf(" %02x", x[k]);
-    puts("");
-}
 
 // Handler for I2C events
 static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
@@ -76,7 +88,6 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
     case I2C_SLAVE_FINISH: // Pi has signalled Stop / Restart
         // if the last event was a receive event and the data is valid
         if (last_event == 1)
-            printf(""); //can use brackets, need to figure out where to wrap
             if (incoming_data[0] == MESSAGE_START && incoming_data[I2C_DATA_LENGTH - 1] == MESSAGE_STOP)
             {
                 // move the data into the input array
@@ -94,89 +105,50 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
                 }
             }
             data_index = 0;
-        
-
-        // printf("Input: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n", input[0], input[1], input[2], input[3], input[4], input[5], input[6], input[7], input[8], input[9]);
-        
-        // float jx = *((float *)&tmp_float);
-        // printf("tester : <%.3f>\n", jx);
-        // printf("len of jx : <%i>\n", sizeof(jx));
-
-        // joy[0] = *((float*)&tmp_float);
-        // tmp_float = 0;
-        // for (int i = 4; i < 8; i++)
-        // {
-        //     tmp_float = tmp_float << 8;
-        //     tmp_float |= input[i];
-        // }
-        // dump(&tmp_float, 4);
-        // float jy = *((float *)&tmp_float);
-        // printf("tester : <%.3f>\n", jy);
-        // printf("len of jy : <%i>\n", sizeof(jy));
-        // // joy[1] = *((float*)&tmp_float);
-
-        // printf("JoyX: %f, JoyY: %f\n", jx, jy);
-        // // printf("JoyX: %.3f, JoyY: %.3f\n", joy[0], joy[1]);
-
-        // uint32_t tester = 0x3f9d70a4;
-        // float f_test;
-        // f_test = *((float *)&tester);
-        // printf("tester : <%.3f>\n", f_test);
-
-        // printf("x JoyX: %x, JoyY: %x\n", joy[0], joy[1]);
-        // dump(&joy[0], 4);
-        // dump(&joy[1], 4);
-        // float x = *((float*)&0x3f7e0000) ;
-        // dump(&x, 4);
-
-        
-        // set the event status to finished
-        // last_event = 0;
         break;
     default:
         break;
     }
 }
 
-// Convert byte to motor double
-// int byte_to_motor_double(int input)
-// {
-//     return (double)input / 255.0 * 2.0 - 1.0;
-// }
-uint32_t array_to_byte(uint8_t bytearray[])
-{
-    // char byte = 0b00000000; // start with empty byte
-    uint32_t byte = 0;
-    for (int i = 0; i < 4; i++)
-    {
-        byte = (char)(byte | bytearray[i]); // since byte is empty and we only have 0 or 1, we can assign to lsb using | operator which doesn't modify the rest of the byte
-        if (i != 31)                        // dont shift on first value, as you are directly writing from the array into byte
-            byte = byte << 8;               // shift lsb to the left for new bit in array
-    }
-    return byte;
-}
 
-void byte_to_motor_float(float *output, uint8_t arr[], int num)
-{ // output float to assign byte to, array of byte input, number/position of byte in float
-    uint32_t byte = array_to_byte(arr);
-    // test for endianess
-    int x = 1;
-    char *y = (char *)&x;
-    // cast reference of output to char (shift to 1 byte), set value directly
-    if (*y)
-        *((unsigned char *)(output) + (3 - num)) = byte; // assignment based on little endianess
-    else
-        *((unsigned char *)(output) + num) = byte; // assignment based on big endianess
-}
-
-int byteoffset = 0;
 bool read = false;
 
 float joyX = 0.0f;
 float joyY = 0.0f;
 
+void setup()
+{ // setup pins for pwm functions
+    stdio_init_all();
+    gpio_init(turn_in1_pin);
+    gpio_init(turn_in2_pin);
+    gpio_init(wheel_in1_pin);
+    gpio_init(wheel_in2_pin);
+
+    // check if default output signal is 0, for now put this in
+    gpio_put(turn_in1_pin, 0);
+    gpio_put(turn_in2_pin, 0);
+    gpio_put(wheel_in1_pin, 0);
+    gpio_put(wheel_in2_pin, 0);
+
+    gpio_set_dir(turn_in1_pin, GPIO_OUT);
+    gpio_set_dir(turn_in2_pin, GPIO_OUT);
+    gpio_set_dir(wheel_in1_pin, GPIO_OUT);
+    gpio_set_dir(wheel_in2_pin, GPIO_OUT);
+
+    gpio_set_function(turn_pwm_pin, GPIO_FUNC_PWM);
+    gpio_set_function(wheel_pwm_pin, GPIO_FUNC_PWM);
+    pwm_set_wrap(pwm_slice, count_max);
+
+    pwm_set_chan_level(pwm_slice, turn_channel, 0);
+    pwm_set_chan_level(pwm_slice, wheel_channel, 0);
+
+    pwm_set_enabled(pwm_slice, true);
+}
+
 int main()
 {
+    
     stdio_init_all();
 
     // Initialize I2C at 100kHz
@@ -187,60 +159,61 @@ int main()
     // Set I2C address for Pico
     i2c_slave_init(I2C_PORT, I2C_PICO_ADDR, &i2c_handler);
 
+    setup();//setup for pwm
+
     while (1)
     {
         if (input_status ==1){
-            uint64_t tmp_float = 0;
-            for (int i = 7; i >= 0; i--)
+            uint64_t tmp_float = 0; //use https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert between float and binary/hex
+            for (int i = 7; i >= 0; i--) //bytes are stored in int8 array (64 bits), pico reads backwards
             {
-                tmp_float |= /* tmp_float | */ input[i];
+                tmp_float |= input[i]; //write byte at a time to tmp_float and shift
                 if(i!=0)
-                    tmp_float<<=8;
-                printf("%02x ", input[i]);
+                    tmp_float<<=8; //preserves order of bits in 64bit int
             }
-            printf("\n");
-            // printf("%x\n", tmp_float);
-            int x = *(((int*)&tmp_float)+1);
-            int y = *(((int*)&tmp_float));
-            float f_x = *(((float*)&tmp_float)+1);
-            float f_y = *(((float*)&tmp_float)+0);
-            printf("%i %x   ",x, x);
-            printf("%i %x\n",y, y);
-            printf("%f %x   ",f_x, f_x);
-            printf("%f %x\n",f_y, f_y);
-            // printf("\n");
-            tmp_float = 0;
+            joyX = *(((float*)&tmp_float)+1); //convert to interprit bits as float (32 bits)
+            joyY = *(((float*)&tmp_float));
+            printf("%f   ", joyX);
+            printf("%f\n", joyY); //printing floats in console
+            tmp_float = 0; //clear float
         }
-        // printf("Status: %d\n", input_status);
-        // if (input_status == 1)
-        // {
-        //     // print output of array_to_byte(input)
-        //     printf("Byte: %d\n", array_to_byte(input));
-        //     // Byte order is 0xFF, joyX, joyY, 0xFb, 0x00, looking when 0xFF is read and ending when 0xFb is read
-        //     if (array_to_byte(input) == MESSAGE_START)
-        //     {
-        //         printf("Message start");
-        //         read = true;
-        //     }
-        //     if (read)
-        //     {
-        //         if (byteoffset < 4)
-        //         {
-        //             byte_to_motor_float(&joyX, input, byteoffset);
-        //         }
-        //         else
-        //         {
-        //             byte_to_motor_float(&joyY, input, byteoffset - 4);
-        //         }
-        //         byteoffset++;
-        //         if (byteoffset >= 8)
-        //         {
-        //             read = false;
-        //             byteoffset = 0;
-        //         }
-        //     }
-        // }
-        // printf("JoyX: %f, JoyY: %f\n", joy[0], joy[1]);
+
+        if (joyX == 0)
+        { // in1 and in2 are high
+            // pwm_set_gpio_level (3, count_max); this method would work, but is iffy, as setting the count value for individual pins update next cycle
+            gpio_put(turn_in1_pin, 1);
+            gpio_put(turn_in2_pin, 1);
+        }
+        else if (joyX < 0)
+        { // in1 is high and in2 is low
+            gpio_put(turn_in1_pin, 1);
+            gpio_put(turn_in2_pin, 0);
+        }
+        else
+        { // in1 is low and in2 is high
+            gpio_put(turn_in2_pin, 1);
+            gpio_put(turn_in1_pin, 0);
+        }
+
+        // wheel motor
+        if (joyY == 0)
+        { // in1 and in2 are high
+            gpio_put(wheel_in1_pin, 1);
+            gpio_put(wheel_in2_pin, 1);
+        }
+        else if (joyY < 0)
+        { // in1 is high and in2 is low
+            gpio_put(wheel_in1_pin, 1);
+            gpio_put(wheel_in2_pin, 0);
+        }
+        else
+        { // in1 is low and in2 is high
+            gpio_put(wheel_in1_pin, 0);
+            gpio_put(wheel_in2_pin, 1);
+        }
+
+        pwm_set_chan_level(pwm_slice, turn_channel, abs((int)(joyX* count_max)));
+        pwm_set_chan_level(pwm_slice, wheel_channel, abs((int)(joyY * count_max)));
     }
 
     return 0;

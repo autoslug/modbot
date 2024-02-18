@@ -129,6 +129,20 @@ class Controller(object):
                     self.UpDPad = event.state
                 elif event.code == "BTN_TRIGGER_HAPPY4":
                     self.DownDPad = event.state
+                elif event.code == "ABS_HAT_0Y": # dowinws 11 dpad readings
+                    if event.state == 1:
+                        self.DownDPad = 1
+                    elif event.state == -1:
+                        self.UpDPad = 1
+                    else:
+                        self.DownDPad = self.UpDPad = 0
+                elif event.code == "ABS_HAT0X":
+                    if event.state == 1:
+                        self.LeftDPad = 1
+                    elif event.state == -1:
+                        self.RightDPad = 1
+                    else:
+                        self.LeftDPad = self.RightDPad = 0
 
 
 class GemXboxController(Controller):

@@ -13,18 +13,30 @@ m3 = [0,0]
 
 # add two vectors
 def add_two_vec(vec1, vec2):
-    
+    print(vec1,vec2)
     # get difference between two vectors, treating one vector as perpendicular to x axis
     theta_diff = vec2[1] - vec1[1]
-    
+    theta_diff = math.radians(theta_diff)
+    print(theta_diff)
+
     # since vec1 is x axis, vector 1 contributes in only the x axis
     # when breaking into components, just add vec2 in x to vec1 magnitude to get x
     # vec2 in y to get y
     # sqrt(a^2+b^2) to get magnitude, and arctan(y/x) to get angle relative to x (add to vec1 orientation)
     x_comp = vec1[0] + math.cos(theta_diff) * vec2[0]
+    print(x_comp)
     y_comp = math.sin(theta_diff) * vec2[0]
-    f_mag = math.sqrt(x_comp^2 + y_comp^2)
-    f_angle = math.atan(y_comp / x_comp) + vec1[1]
+    print(y_comp)
+    f_mag = math.sqrt(x_comp**2 + y_comp**2)
+    print(f_mag)
+    f_angle = math.atan2(y_comp, x_comp) + math.radians(vec1[1])
+    print(f_angle)
+    f_angle = math.degrees(f_angle)
+    print(f_angle)
+    if f_angle < -180:
+        f_angle += 360
+    elif f_angle > 180:
+        f_angle -= 360
     return [f_mag, f_angle]
 
 
@@ -57,7 +69,7 @@ def convert(velocity, rotation):
     if rot_mag < 0:
         dir *= -1
         rot_mag *= -1
-
+    print(rot_mag)
     # add two vectors (in local frame) based on direction and magnitude
     m1 = add_two_vec(m1, [rot_mag, 90*dir])
     m2 = add_two_vec(m2, [rot_mag, 90*dir])
@@ -65,3 +77,4 @@ def convert(velocity, rotation):
 
     print(m1, m2, m3)
 
+convert([10,0],0)

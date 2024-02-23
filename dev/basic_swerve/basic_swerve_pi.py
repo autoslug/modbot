@@ -23,20 +23,23 @@ delay = 0.05  # Delay between each read/write operation
 while True:  # Infinite loop
     status = joy.read_self()  # Read the status of the controller
     x = status.LeftJoystickX  # Get the X position of the left joystick
-    y = status.RightJoystickY  # Get the Y position of the right joystick
+    y = -1 * status.RightJoystickY  # Get the Y position of the right joystick
     joystickswitch = x > 0  # Check if the joystick is moved to the right
 
-    x_b = struct.pack('f', x)
-    y_b = struct.pack('f', y)
+    x_b = struct.pack("f", x)
+    y_b = struct.pack("f", y)
 
     data = bytes([0xFA]) + \
         x_b + \
         y_b + \
-        bytes([0xFB, 0x00])  # Prepare the data to be sent
+        bytes([0xFB])  # Prepare the data to be sent
+        # bytes([0xFB, 0x00])  # Prepare the data to be sent
+    # data = x_b + y_b + bytes([0x00])  # Prepare the data to be sent
     # data = [0xFA, int(joystickswitch), int(joystickswitch), 0xFB, 0x00]
 
-    print(len(data))
-    print(bytes(data))
+    # print(len(data))
+    # print(bytes(data))
+    # print(x, y)
 
     try:
         os.write(i2c_fd, data)  # Write the data to the i2c device
@@ -52,8 +55,12 @@ while True:  # Infinite loop
     try:
         incoming_data = os.read(i2c_fd, 1)  # Read 1 byte from the i2c device
         time.sleep(delay)  # Wait for a while
-        print(
-            "Received data from Pico: ", list(incoming_data)
-        )  # Print the data that was received
+        # print(
+        #     "Received data from Pico: ", list(incoming_data)
+        # )  # Print the data that was received
     except TimeoutError:
         print("Timeout Error")  # Print an error message if there was a timeout error
+    except OSError:
+        print(
+            "Remote I/O Error"
+        )

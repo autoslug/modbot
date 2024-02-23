@@ -10,7 +10,7 @@ class PS4_Controller(object):
     def __init__(self):
         self.MAX_TRIG_VAL = math.pow(2, 8)  # Maximum value for trigger input
         self.MAX_JOY_VAL = math.pow(2, 7)  # Maximum value for joystick input
-        self.THRESHOLD = 0.03  # Threshold for joystick deadzone
+        self.THRESHOLD = 0.04  # Threshold for joystick deadzone
         self.reset_vars()  # Reset all controller variables to their initial state
         self.start_thread(())  # Start a new thread to monitor the controller
 

@@ -187,8 +187,16 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
     }
 }
 
-float joyX = 0.0f;
-float joyY = 0.0f;
+// linear & angular velocity for each wheel
+float v1 = 0.0f;
+float v2 = 0.0f;
+float v3 = 0.0f;
+
+float w1 = 0.0f;
+float w2 = 0.0f;
+float w3 = 0.0f;
+
+const int num_floats = 6;
 
 void setup_pins(int a, int b, int pwm, int slice, int channel)
 {
@@ -236,107 +244,178 @@ int main()
         if (input_status == 1)
         {
             input_status = 0;
-            uint64_t tmp_float = 0;      // use https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert between float and binary/hex
-            for (int i = 7; i >= 0; i--) // bytes are stored in int8 array (64 bits), pico reads backwards
+            // use https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert between float and binary/hex
+            uint32_t tmp_float[num_floats];
+            // for (int i = (num_floats * 4) - 1; i >= 0; i--) // bytes are stored in int8 array (64 bits), pico reads backwards
+            // {
+            //     tmp_float |= buffer->buff[buffer->head]->data[i + 1]; // write byte at a time to tmp_float and shift
+            //     printf("%d ", buffer->buff[buffer->head]->data[i + 1]);
+            //     if (i != 0)
+            //         tmp_float <<= 8; // preserves order of bits in 64bit int
+            // }
+
+            // for (int i = 0; i < buffer->buff[buffer->head]->len; i++)
+            // {
+            //     printf("%d ", buffer->buff[buffer->head]->data[i]);
+            // }
+            // printf("\n");
+
+            for (int i = 0; i < num_floats; i++)
             {
-                tmp_float |= buffer->buff[buffer->head]->data[i + 1]; // write byte at a time to tmp_float and shift
-                printf("%d ", buffer->buff[buffer->head]->data[i + 1]);
-                if (i != 0)
-                    tmp_float <<= 8; // preserves order of bits in 64bit int
+                tmp_float[i] = 0;
+                for (int j = 0; j < 4; j++)
+                {
+                    tmp_float[i] |= buffer->buff[buffer->head]->data[(i * 4) + j + 1] << (8 * j);
+                    // printf("%d:%d ", (i * 4) + j + 1, buffer->buff[buffer->head]->data[(i * 4) + j + 1]);
+                }
+                // printf("\n %x\n", tmp_float[i]);
             }
-            printf("\n");
-            joyX = *(((float *)&tmp_float)); // convert to interpret bits as float (32 bits)
-            joyY = *(((float *)&tmp_float) + 1);
-            printf("%f   ", joyX);
-            printf("%f\n", joyY); // printing floats in console
-            tmp_float = 0;        // clear float
+            // printf("\n");
+            // joyX = *(((float *)&tmp_float)); // convert to interpret bits as float (32 bits)
+            // joyY = *(((float *)&tmp_float) + 1);
+            v1 = *(((float *)&tmp_float[0]));
+            w1 = *(((float *)&tmp_float[1]));
+            v2 = *(((float *)&tmp_float[2]));
+            w2 = *(((float *)&tmp_float[3]));
+            v3 = *(((float *)&tmp_float[4]));
+            w3 = *(((float *)&tmp_float[5]));
+
+            // printing floats in console
+            printf("%f ", v1);
+            printf("%f,   ", w1);
+            printf("%f ", v2);
+            printf("%f,   ", w2);
+            printf("%f ", v3);
+            printf("%f\n", w3);
+
+            // tmp_float = 0; // clear float
             buffer->head = (buffer->head + 1) % I2C_DATA_LENGTH;
             buffer->full = 0;
         }
         else
         {
-            printf("%f   ", joyX);
-            printf("%f\n", joyY); // printing floats in console
+            // printf("%f   ", v1);
+            // printf("%f ", w1);
+            // printf("%f   ", v2);
+            // printf("%f ", w2);
+            // printf("%f   ", v3);
+            // printf("%f\n", w3);
         }
         gpio_put(LED_PIN, 0);
 
-        if (joyX == 0)
+        if (w1 == 0)
         { // in1 and in2 are high
             gpio_put(turn_1a, 1);
             gpio_put(turn_1b, 1);
-
-            gpio_put(turn_2a, 1);
-            gpio_put(turn_2b, 1);
-
-            gpio_put(turn_3a, 1);
-            gpio_put(turn_3b, 1);
         }
-        else if (joyX < 0)
+        else if (w1 < 0)
         { // in1 is high and in2 is low
             gpio_put(turn_1a, 1);
             gpio_put(turn_1b, 0);
-
-            gpio_put(turn_2a, 1);
-            gpio_put(turn_2b, 0);
-
-            gpio_put(turn_3a, 1);
-            gpio_put(turn_3b, 0);
         }
         else
         { // in1 is low and in2 is high
             gpio_put(turn_1b, 1);
             gpio_put(turn_1a, 0);
+        }
 
+        if (w2 == 0)
+        { // in1 and in2 are high
+            gpio_put(turn_2a, 1);
+            gpio_put(turn_2b, 1);
+        }
+        else if (w2 < 0)
+        { // in1 is high and in2 is low
+            gpio_put(turn_2a, 1);
+            gpio_put(turn_2b, 0);
+        }
+        else
+        { // in1 is low and in2 is high
             gpio_put(turn_2b, 1);
             gpio_put(turn_2a, 0);
+        }
 
+        if (w3 == 0)
+        { // in1 and in2 are high
+            gpio_put(turn_3a, 1);
+            gpio_put(turn_3b, 1);
+        }
+        else if (w3 < 0)
+        { // in1 is high and in2 is low
+            gpio_put(turn_3a, 1);
+            gpio_put(turn_3b, 0);
+        }
+        else
+        { // in1 is low and in2 is high
             gpio_put(turn_3b, 1);
             gpio_put(turn_3a, 0);
         }
 
-        // wheel motor
-        if (joyY == 0)
-        { // in1 and in2 are high
+        if (v1 == 0)
+        {
+            // in1 and in2 are high
             gpio_put(wheel_1a, 1);
             gpio_put(wheel_1b, 1);
+        }
+        else if (v1 < 0)
+        {
+            // in1 is high and in2 is low
+            gpio_put(wheel_1a, 1);
+            gpio_put(wheel_1b, 0);
+        }
+        else
+        {
+            // in1 is low and in2 is high
+            gpio_put(wheel_1b, 1);
+            gpio_put(wheel_1a, 0);
+        }
 
+        if (v2 == 0)
+        {
+            // in1 and in2 are high
             gpio_put(wheel_2a, 1);
             gpio_put(wheel_2b, 1);
+        }
+        else if (v2 < 0)
+        {
+            // in1 is high and in2 is low
+            gpio_put(wheel_2a, 1);
+            gpio_put(wheel_2b, 0);
+        }
+        else
+        {
+            // in1 is low and in2 is high
+            gpio_put(wheel_2b, 1);
+            gpio_put(wheel_2a, 0);
+        }
 
+        if (v3 == 0)
+        {
+            // in1 and in2 are high
             gpio_put(wheel_3a, 1);
             gpio_put(wheel_3b, 1);
         }
-        else if (joyY < 0)
-        { // in1 is high and in2 is low
-            gpio_put(wheel_1a, 1);
-            gpio_put(wheel_1b, 0);
-
-            gpio_put(wheel_2a, 1);
-            gpio_put(wheel_2b, 0);
-
+        else if (v3 < 0)
+        {
+            // in1 is high and in2 is low
             gpio_put(wheel_3a, 1);
             gpio_put(wheel_3b, 0);
         }
         else
-        { // in1 is low and in2 is high
-            gpio_put(wheel_1a, 0);
-            gpio_put(wheel_1b, 1);
-
-            gpio_put(wheel_2a, 0);
-            gpio_put(wheel_2b, 1);
-
-            gpio_put(wheel_3a, 0);
+        {
+            // in1 is low and in2 is high
             gpio_put(wheel_3b, 1);
+            gpio_put(wheel_3a, 0);
         }
 
-        pwm_set_chan_level(turn_1_slice, turn_1_channel, abs((int)(joyX * count_max)));
-        pwm_set_chan_level(wheel_1_slice, wheel_1_channel, abs((int)(joyY * count_max)));
+        pwm_set_chan_level(turn_1_slice, turn_1_channel, abs((int)(w1 * count_max)));
+        pwm_set_chan_level(wheel_1_slice, wheel_1_channel, abs((int)(v1 * count_max)));
 
-        pwm_set_chan_level(turn_2_slice, turn_2_channel, abs((int)(joyX * count_max)));
-        pwm_set_chan_level(wheel_2_slice, wheel_2_channel, abs((int)(joyY * count_max)));
+        pwm_set_chan_level(turn_2_slice, turn_2_channel, abs((int)(w2 * count_max)));
+        pwm_set_chan_level(wheel_2_slice, wheel_2_channel, abs((int)(v2 * count_max)));
 
-        pwm_set_chan_level(turn_3_slice, turn_3_channel, abs((int)(joyX * count_max)));
-        pwm_set_chan_level(wheel_3_slice, wheel_3_channel, abs((int)(joyY * count_max)));
+        pwm_set_chan_level(turn_3_slice, turn_3_channel, abs((int)(w3 * count_max)));
+        pwm_set_chan_level(wheel_3_slice, wheel_3_channel, abs((int)(v3 * count_max)));
 
         // sleep_ms(20); // used for debugging - reduces the number of loops w/ no new i2c data
     }

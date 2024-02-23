@@ -20,26 +20,94 @@ fcntl.ioctl(
 joy = PS4_Controller()  # Initialize the controller
 delay = 0.05  # Delay between each read/write operation
 
+import math
+
+# radius of swerve drive base in meters
+radius = 1
+
+
+# add two vectors
+def add_two_vec(v1, v2):
+    # get difference between two vectors, treating one vector as perpendicular to x axis
+    theta_diff = v2[1] - v1[1]
+    theta_diff = theta_diff
+
+    # since vec1 is x axis, vector 1 contributes in only the x axis
+    # when breaking into components, just add vec2 in x to vec1 magnitude to get x
+    # vec2 in y to get y
+    # sqrt(a^2+b^2) to get magnitude, and arctan(y/x) to get angle relative to x (add to vec1 orientation)
+    x_comp = v1[0] + math.cos(theta_diff) * v2[0]
+    y_comp = math.sin(theta_diff) * v2[0]
+    f_mag = math.sqrt(x_comp**2 + y_comp**2)
+    f_angle = math.atan2(y_comp, x_comp) + v1[1]
+    f_angle = f_angle
+    if f_angle < -math.pi:
+        f_angle += 2 * math.pi
+    elif f_angle > math.pi:
+        f_angle -= 2 * math.pi
+    return [f_mag, f_angle]
+
+
+# input velocity [speed (m/s), orientation (deg)] in local reference frame
+# rotation (rad/s)
+def convert(v_vec, omega):
+
+    # the vector for each motor in global reference frame is given by adding
+    # 1) velocity (relative to global reference frame)
+    # 2) rotation vector (vector perpendicular to each motor relative to the body reference frame)
+    #    because the frame is circular, magnitude of vector is calculated by V = rw (formula for tangential speed relative to radius and rad/s)
+
+    # setting all vectors to velocity relative to local reference frame
+    m1 = [v_vec[0], v_vec[1]]
+    m2 = [v_vec[0], v_vec[1] - 2 * math.pi / 3]
+    m3 = [v_vec[0], v_vec[1] - 4 * math.pi / 3]
+
+    # create magnitude for each vector
+    rot_mag = omega * radius
+    dir = 1
+
+    if rot_mag < 0:
+        dir *= -1
+        rot_mag *= -1
+    # add two vectors (in local frame) based on direction and magnitude
+    m1 = add_two_vec(m1, [rot_mag, math.pi / 2 * dir])
+    m2 = add_two_vec(m2, [rot_mag, math.pi / 2 * dir])
+    m3 = add_two_vec(m3, [rot_mag, math.pi / 2 * dir])
+
+    return [m1, m2, m3]
+
+
 while True:  # Infinite loop
     status = joy.read_self()  # Read the status of the controller
     x = status.LeftJoystickX  # Get the X position of the left joystick
-    y = -1 * status.RightJoystickY  # Get the Y position of the right joystick
-    joystickswitch = x > 0  # Check if the joystick is moved to the right
+    y = -1 * status.LeftJoystickY  # Get the Y position of the left joystick
+    w = status.RightJoystickX  # Get the X position of the right joystick
 
-    x_b = struct.pack("f", x)
-    y_b = struct.pack("f", y)
+    v = (math.sqrt(x**2 + y**2), math.atan2(y, x))
+    m = convert(v, w)
 
-    data = bytes([0xFA]) + \
-        x_b + \
-        y_b + \
-        bytes([0xFB])  # Prepare the data to be sent
-        # bytes([0xFB, 0x00])  # Prepare the data to be sent
-    # data = x_b + y_b + bytes([0x00])  # Prepare the data to be sent
-    # data = [0xFA, int(joystickswitch), int(joystickswitch), 0xFB, 0x00]
+    m1_v = struct.pack("f", m[0][0])
+    m1_w = struct.pack("f", math.degrees(m[0][1]))
 
-    # print(len(data))
-    # print(bytes(data))
-    # print(x, y)
+    m2_v = struct.pack("f", m[1][0])
+    m2_w = struct.pack("f", math.degrees(m[1][1]))
+
+    m3_v = struct.pack("f", m[2][0])
+    m3_w = struct.pack("f", math.degrees(m[2][1]))
+
+    data = (
+        bytes([0xFA]) + m1_v + m1_w + m2_v + m2_w + m3_v + m3_w + bytes([0xFB])
+    )  # Prepare the data to be sent
+    # data = (
+    #     bytes([0xFA])
+    #     + struct.pack("f", 0.5)
+    #     + struct.pack("f", 0.5)
+    #     + struct.pack("f", 0.5)
+    #     + struct.pack("f", 0.5)
+    #     + struct.pack("f", 0.5)
+    #     + struct.pack("f", 0.5)
+    #     + bytes([0xFB])
+    # )  # Prepare the data to be sent
 
     try:
         os.write(i2c_fd, data)  # Write the data to the i2c device
@@ -61,6 +129,4 @@ while True:  # Infinite loop
     except TimeoutError:
         print("Timeout Error")  # Print an error message if there was a timeout error
     except OSError:
-        print(
-            "Remote I/O Error"
-        )
+        print("Remote I/O Error")

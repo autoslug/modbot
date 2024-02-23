@@ -18,19 +18,8 @@
 #define MESSAGE_START 0xFA
 #define MESSAGE_STOP 0xFB
 
-// digital low on in# pins indicates direction, both high is no signal
-#define turn_in1_pin 4 // 1A, forward direction
-#define turn_in2_pin 5 // 1B, backward direction
-
-// #define motor_pwm_pin 9 // 2A, 2B take up by motor speed
-#define turn_pwm_pin 9  // 2A, turn motor speed
-#define wheel_pwm_pin 8 // 2B, wheel motor speed
-#define pwm_slice 4
-#define turn_channel PWM_CHAN_B
-#define wheel_channel PWM_CHAN_A
-
-#define wheel_in1_pin 6 // 3A, forward direction
-#define wheel_in2_pin 7 // 3B, backard direction
+// digital low on a/b pins indicates direction, both high is no signal (stop)
+// pwm signal on pwm pin controls speed
 
 #define wheel_1_pwm 2
 #define wheel_1_slice 1
@@ -69,11 +58,7 @@
 #define wheel_3_channel PWM_CHAN_B
 
 // #define freq 500 // note: use clock management frequencies to set frequency
-// #define duty_cycle 1
 #define count_max 65535
-
-// Buffer for incoming data
-// uint8_t incoming_data[I2C_DATA_LENGTH];
 
 // Status of the input data
 int input_status = 0;
@@ -87,9 +72,6 @@ int data_index = 0;
 int count = 0;
 
 // Buffer for the input data
-// uint8_t input[I2C_DATA_LENGTH - 2];
-
-// make a circular buffer for the incoming data packets
 typedef struct dataT
 {
     uint8_t data[I2C_DATA_LENGTH];
@@ -142,26 +124,16 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
         // Read the data
         uint8_t tmp_byte = i2c_read_byte_raw(i2c);
         // Check if the data is valid
-        // if ((tmp->data[0] == 0x00 && tmp != MESSAGE_START) || data_index >= I2C_DATA_LENGTH)
         if (tmp->len >= I2C_DATA_LENGTH)
         {
             printf("Invalid data %x, len %x\n", tmp_byte, tmp->len);
             break;
         }
         // Store the data
-        // incoming_data[data_index] = tmp;
         tmp->data[tmp->len] = tmp_byte;
-        // printf("Data: %d\n", incoming_data[data_index]);
         tmp->len++;
-        // data_index++;
         // set the event status to received
         last_event = 1;
-
-        // for (int i = 0; i < tmp->len; i++)
-        // {
-        //     printf("%d ", tmp->data[i]);
-        // }
-        // printf("\n");
 
         break;
     }
@@ -179,25 +151,14 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
         {
             if (tmp->data[0] == MESSAGE_START && tmp->data[tmp->len - 1] == MESSAGE_STOP)
             {
-                // printf("Buffer not full, putting this into buffer:\n"
                 for (int i = 0; i < tmp->len; i++)
                 {
-                    // input[i] = (int)incoming_data[i + 1];
                     buffer->buff[buffer->tail]->data[i] = tmp->data[i];
-                    // printf("%d ", buffer->buff[buffer->tail]->data[i]);
                 }
-                // printf("\n");
                 buffer->buff[buffer->tail]->len = tmp->len;
+
                 // set the input status to ready
                 input_status = 1;
-
-                // printf("buffer not full\n");
-
-                // for (int i = 0; i < buffer->buff[buffer->tail]->len; i++)
-                // {
-                //     printf("%d ", buffer->buff[buffer->tail]->data[i]);
-                // }
-                // printf("\n");
 
                 // move the tail of the buffer
                 buffer->tail = (buffer->tail + 1) % I2C_DATA_LENGTH;
@@ -208,7 +169,6 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
                     buffer->full = 1;
                 }
                 tmp->len = 0;
-                // printf("Data received pt1\n");
             }
         }
         else
@@ -227,95 +187,20 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
     }
 }
 
-bool read = false;
-
 float joyX = 0.0f;
 float joyY = 0.0f;
 
-void setup()
-{ // setup pins for pwm functions
-    stdio_init_all();
-    gpio_init(turn_1a);
-    gpio_init(turn_1b);
-    gpio_init(wheel_1a);
-    gpio_init(wheel_1b);
-
-    gpio_init(turn_2a);
-    gpio_init(turn_2b);
-    gpio_init(wheel_2a);
-    gpio_init(wheel_2b);
-
-    gpio_init(turn_3a);
-    gpio_init(turn_3b);
-    gpio_init(wheel_3a);
-    gpio_init(wheel_3b);
-
-    gpio_set_dir(turn_1a, GPIO_OUT);
-    gpio_set_dir(turn_1b, GPIO_OUT);
-    gpio_set_dir(wheel_1a, GPIO_OUT);
-    gpio_set_dir(wheel_1b, GPIO_OUT);
-
-    gpio_set_dir(turn_2a, GPIO_OUT);
-    gpio_set_dir(turn_2b, GPIO_OUT);
-    gpio_set_dir(wheel_2a, GPIO_OUT);
-    gpio_set_dir(wheel_2b, GPIO_OUT);
-
-    gpio_set_dir(turn_3a, GPIO_OUT);
-    gpio_set_dir(turn_3b, GPIO_OUT);
-    gpio_set_dir(wheel_3a, GPIO_OUT);
-    gpio_set_dir(wheel_3b, GPIO_OUT);
-
-    // check if default output signal is 0, for now put this in
-    gpio_put(turn_1a, 0);
-    gpio_put(turn_1b, 0);
-    gpio_put(wheel_1a, 0);
-    gpio_put(wheel_1b, 0);
-
-    gpio_put(turn_2a, 0);
-    gpio_put(turn_2b, 0);
-    gpio_put(wheel_2a, 0);
-    gpio_put(wheel_2b, 0);
-
-    gpio_put(turn_3a, 0);
-    gpio_put(turn_3b, 0);
-    gpio_put(wheel_3a, 0);
-    gpio_put(wheel_3b, 0);
-
-    gpio_set_function(turn_1_pwm, GPIO_FUNC_PWM);
-    gpio_set_function(wheel_1_pwm, GPIO_FUNC_PWM);
-
-    gpio_set_function(turn_2_pwm, GPIO_FUNC_PWM);
-    gpio_set_function(wheel_2_pwm, GPIO_FUNC_PWM);
-
-    gpio_set_function(turn_3_pwm, GPIO_FUNC_PWM);
-    gpio_set_function(wheel_3_pwm, GPIO_FUNC_PWM);
-
-    pwm_set_wrap(turn_1_slice, count_max);
-    pwm_set_wrap(wheel_1_slice, count_max);
-
-    pwm_set_wrap(turn_2_slice, count_max);
-    pwm_set_wrap(wheel_2_slice, count_max);
-
-    pwm_set_wrap(turn_3_slice, count_max);
-    pwm_set_wrap(wheel_3_slice, count_max);
-
-    pwm_set_chan_level(turn_1_slice, turn_1_channel, 0);
-    pwm_set_chan_level(wheel_1_slice, wheel_1_channel, 0);
-
-    pwm_set_chan_level(turn_2_slice, turn_2_channel, 0);
-    pwm_set_chan_level(wheel_2_slice, wheel_2_channel, 0);
-
-    pwm_set_chan_level(turn_3_slice, turn_3_channel, 0);
-    pwm_set_chan_level(wheel_3_slice, wheel_3_channel, 0);
-
-    pwm_set_enabled(turn_1_slice, true);
-    pwm_set_enabled(wheel_1_slice, true);
-
-    pwm_set_enabled(turn_2_slice, true);
-    pwm_set_enabled(wheel_2_slice, true);
-
-    pwm_set_enabled(turn_3_slice, true);
-    pwm_set_enabled(wheel_3_slice, true);
+void setup_pins(int a, int b, int pwm, int slice, int channel)
+{
+    gpio_init(a);
+    gpio_init(b);
+    gpio_init(pwm);
+    gpio_set_dir(a, GPIO_OUT);
+    gpio_set_dir(b, GPIO_OUT);
+    gpio_set_function(pwm, GPIO_FUNC_PWM);
+    pwm_set_wrap(slice, count_max);
+    pwm_set_chan_level(slice, channel, 0);
+    pwm_set_enabled(slice, true);
 }
 
 int main()
@@ -336,26 +221,24 @@ int main()
     // Set I2C address for Pico
     i2c_slave_init(I2C_PORT, I2C_PICO_ADDR, &i2c_handler);
 
-    setup(); // setup for pwm
+    // Set up the pins for the motors
+    setup_pins(wheel_1a, wheel_1b, wheel_1_pwm, wheel_1_slice, wheel_1_channel);
+    setup_pins(wheel_2a, wheel_2b, wheel_2_pwm, wheel_2_slice, wheel_2_channel);
+    setup_pins(wheel_3a, wheel_3b, wheel_3_pwm, wheel_3_slice, wheel_3_channel);
 
-    while (1)
+    setup_pins(turn_1a, turn_1b, turn_1_pwm, turn_1_slice, turn_1_channel);
+    setup_pins(turn_2a, turn_2b, turn_2_pwm, turn_2_slice, turn_2_channel);
+    setup_pins(turn_3a, turn_3b, turn_3_pwm, turn_3_slice, turn_3_channel);
+
+    while (true)
     {
-        // while (true) {
         gpio_put(LED_PIN, 1);
-        // sleep_ms(250);
-        // sleep_ms(250);
-        // }
-        // count++;
-        // printf("Count: %d\n", input_status);
         if (input_status == 1)
         {
             input_status = 0;
-            // printf("Data received\n");
-            uint64_t tmp_float = 0; // use https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert between float and binary/hex
-            // printf("dati len: %d\n", buffer->buff[buffer->head]->len);
+            uint64_t tmp_float = 0;      // use https://www.h-schmidt.net/FloatConverter/IEEE754.html to convert between float and binary/hex
             for (int i = 7; i >= 0; i--) // bytes are stored in int8 array (64 bits), pico reads backwards
             {
-                // tmp_float |= input[i]; // write byte at a time to tmp_float and shift
                 tmp_float |= buffer->buff[buffer->head]->data[i + 1]; // write byte at a time to tmp_float and shift
                 printf("%d ", buffer->buff[buffer->head]->data[i + 1]);
                 if (i != 0)
@@ -369,20 +252,16 @@ int main()
             tmp_float = 0;        // clear float
             buffer->head = (buffer->head + 1) % I2C_DATA_LENGTH;
             buffer->full = 0;
-            // input_status = 0;
         }
         else
         {
             printf("%f   ", joyX);
             printf("%f\n", joyY); // printing floats in console
-            // printf("No data\n");
-            // printf("");
         }
         gpio_put(LED_PIN, 0);
 
         if (joyX == 0)
         { // in1 and in2 are high
-            // pwm_set_gpio_level (3, count_max); this method would work, but is iffy, as setting the count value for individual pins update next cycle
             gpio_put(turn_1a, 1);
             gpio_put(turn_1b, 1);
 
@@ -458,7 +337,6 @@ int main()
 
         pwm_set_chan_level(turn_3_slice, turn_3_channel, abs((int)(joyX * count_max)));
         pwm_set_chan_level(wheel_3_slice, wheel_3_channel, abs((int)(joyY * count_max)));
-        // pwm_set_chan_level(wheel_2_slice, wheel_2_channel, (int)(0.5 * count_max));
 
         // sleep_ms(20); // used for debugging - reduces the number of loops w/ no new i2c data
     }

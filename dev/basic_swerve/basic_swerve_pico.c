@@ -4,6 +4,7 @@
 #include <pico/i2c_slave.h>
 #include <hardware/i2c.h>
 #include <hardware/pwm.h>
+#include <hardware/timer.h>
 
 // Define constants for I2C communication
 #define I2C_PICO_ADDR 0x08
@@ -198,6 +199,13 @@ float w3 = 0.0f;
 
 const int num_floats = 6;
 
+float rot1, rot2, rot3; // current working rotation to calc delta
+float delt1, delt2, delt3; // change in rotation after subtracting omega
+float u1, u2, u3; // interim omega values
+
+int flip1 = 1, flip2 = 1, flip3 = 1;
+// const float scale = 
+
 void setup_pins(int a, int b, int pwm, int slice, int channel)
 {
     gpio_init(a);
@@ -281,12 +289,13 @@ int main()
             w3 = *(((float *)&tmp_float[5]));
 
             // printing floats in console
-            printf("%f ", v1);
-            printf("%f,   ", w1);
-            printf("%f ", v2);
-            printf("%f,   ", w2);
-            printf("%f ", v3);
-            printf("%f\n", w3);
+            // printf("%f ", v1);
+            // printf("%f,   ", w1);
+            // printf("%f ", v2);
+            // printf("%f,   ", w2);
+            // printf("%f ", v3);
+            // printf("%f\n", w3);
+            printf("%u ", to_ms_since_boot(get_absolute_time()));
 
             // tmp_float = 0; // clear float
             buffer->head = (buffer->head + 1) % I2C_DATA_LENGTH;
@@ -302,6 +311,27 @@ int main()
             // printf("%f\n", w3);
         }
         gpio_put(LED_PIN, 0);
+
+        // get delta for wheel 1
+        delt1 = w1 - rot1;
+        if (abs(delt1) > 90) {
+            flip1 *= -1;
+            delt1 = (90)*(delt1<0?-1:1)-delt1;
+        }
+
+        // get delta for wheel 2
+        delt2 = w2 - rot2;
+        if (abs(delt2) > 90) {
+            flip2 *= -1;
+            delt2 = (90)*(delt2<0?-1:1)-delt2;
+        }
+
+        // get delta for wheel 3
+        delt3 = w3 - rot3;
+        if (abs(delt3) > 90) {
+            flip3 *= -1;
+            delt3 = (90)*(delt3<0?-1:1)-delt3;
+        }
 
         if (w1 == 0)
         { // in1 and in2 are high
@@ -357,7 +387,7 @@ int main()
             gpio_put(wheel_1a, 1);
             gpio_put(wheel_1b, 1);
         }
-        else if (v1 < 0)
+        else if (v1 * flip1 < 0)
         {
             // in1 is high and in2 is low
             gpio_put(wheel_1a, 1);
@@ -376,7 +406,7 @@ int main()
             gpio_put(wheel_2a, 1);
             gpio_put(wheel_2b, 1);
         }
-        else if (v2 < 0)
+        else if (v2 * flip2 < 0)
         {
             // in1 is high and in2 is low
             gpio_put(wheel_2a, 1);
@@ -395,7 +425,7 @@ int main()
             gpio_put(wheel_3a, 1);
             gpio_put(wheel_3b, 1);
         }
-        else if (v3 < 0)
+        else if (v3 * flip3 < 0)
         {
             // in1 is high and in2 is low
             gpio_put(wheel_3a, 1);

@@ -199,12 +199,12 @@ float w3 = 0.0f;
 
 const int num_floats = 6;
 
-float rot1, rot2, rot3; // current working rotation to calc delta
+float rot1, rot2, rot3;    // current working rotation to calc delta
 float delt1, delt2, delt3; // change in rotation after subtracting omega
-float u1, u2, u3; // interim omega values
+float u1, u2, u3;          // interim omega values
 
 int flip1 = 1, flip2 = 1, flip3 = 1;
-// const float scale = 
+// const float scale =
 
 void setup_pins(int a, int b, int pwm, int slice, int channel)
 {
@@ -246,7 +246,12 @@ int main()
     setup_pins(turn_2a, turn_2b, turn_2_pwm, turn_2_slice, turn_2_channel);
     setup_pins(turn_3a, turn_3b, turn_3_pwm, turn_3_slice, turn_3_channel);
 
-    while (true)
+    sleep_ms(1000); // wait for the i2c to be ready
+
+    absolute_time_t start_time = get_absolute_time();
+
+    // turns 180 degrees (approximately) - use 11660 to help scale the degrees needed to turn to the # of timesteps necessary to complete that turn at full speed
+    for (int timetest = 0; timetest < 11660; timetest++)
     {
         gpio_put(LED_PIN, 1);
         if (input_status == 1)
@@ -282,11 +287,11 @@ int main()
             // joyX = *(((float *)&tmp_float)); // convert to interpret bits as float (32 bits)
             // joyY = *(((float *)&tmp_float) + 1);
             v1 = *(((float *)&tmp_float[0]));
-            w1 = *(((float *)&tmp_float[1]));
+            w1 = 1.0;
             v2 = *(((float *)&tmp_float[2]));
-            w2 = *(((float *)&tmp_float[3]));
+            w2 = 1.0;
             v3 = *(((float *)&tmp_float[4]));
-            w3 = *(((float *)&tmp_float[5]));
+            w3 = 1.0;
 
             // printing floats in console
             // printf("%f ", v1);
@@ -295,7 +300,7 @@ int main()
             // printf("%f,   ", w2);
             // printf("%f ", v3);
             // printf("%f\n", w3);
-            printf("%u ", to_ms_since_boot(get_absolute_time()));
+            printf("i2c %u ", to_ms_since_boot(get_absolute_time()));
 
             // tmp_float = 0; // clear float
             buffer->head = (buffer->head + 1) % I2C_DATA_LENGTH;
@@ -312,132 +317,148 @@ int main()
         }
         gpio_put(LED_PIN, 0);
 
+        if (timetest < 11649)
+        {
+            w1 = 1.0;
+            w2 = 1.0;
+            w3 = 1.0;
+        }
+        else
+        {
+            w1 = 0.0;
+            w2 = 0.0;
+            w3 = 0.0;
+        }
+
         // get delta for wheel 1
         delt1 = w1 - rot1;
-        if (abs(delt1) > 90) {
+        if (abs(delt1) > 90)
+        {
             flip1 *= -1;
-            delt1 = (90)*(delt1<0?-1:1)-delt1;
+            delt1 = (90) * (delt1 < 0 ? -1 : 1) - delt1;
         }
 
         // get delta for wheel 2
         delt2 = w2 - rot2;
-        if (abs(delt2) > 90) {
+        if (abs(delt2) > 90)
+        {
             flip2 *= -1;
-            delt2 = (90)*(delt2<0?-1:1)-delt2;
+            delt2 = (90) * (delt2 < 0 ? -1 : 1) - delt2;
         }
 
         // get delta for wheel 3
         delt3 = w3 - rot3;
-        if (abs(delt3) > 90) {
+        if (abs(delt3) > 90)
+        {
             flip3 *= -1;
-            delt3 = (90)*(delt3<0?-1:1)-delt3;
+            delt3 = (90) * (delt3 < 0 ? -1 : 1) - delt3;
         }
+        {
+            if (w1 == 0)
+            { // in1 and in2 are high
+                gpio_put(turn_1a, 1);
+                gpio_put(turn_1b, 1);
+            }
+            else if (w1 < 0)
+            { // in1 is high and in2 is low
+                gpio_put(turn_1a, 1);
+                gpio_put(turn_1b, 0);
+            }
+            else
+            { // in1 is low and in2 is high
+                gpio_put(turn_1b, 1);
+                gpio_put(turn_1a, 0);
+            }
 
-        if (w1 == 0)
-        { // in1 and in2 are high
-            gpio_put(turn_1a, 1);
-            gpio_put(turn_1b, 1);
-        }
-        else if (w1 < 0)
-        { // in1 is high and in2 is low
-            gpio_put(turn_1a, 1);
-            gpio_put(turn_1b, 0);
-        }
-        else
-        { // in1 is low and in2 is high
-            gpio_put(turn_1b, 1);
-            gpio_put(turn_1a, 0);
-        }
+            if (w2 == 0)
+            { // in1 and in2 are high
+                gpio_put(turn_2a, 1);
+                gpio_put(turn_2b, 1);
+            }
+            else if (w2 < 0)
+            { // in1 is high and in2 is low
+                gpio_put(turn_2a, 1);
+                gpio_put(turn_2b, 0);
+            }
+            else
+            { // in1 is low and in2 is high
+                gpio_put(turn_2b, 1);
+                gpio_put(turn_2a, 0);
+            }
 
-        if (w2 == 0)
-        { // in1 and in2 are high
-            gpio_put(turn_2a, 1);
-            gpio_put(turn_2b, 1);
-        }
-        else if (w2 < 0)
-        { // in1 is high and in2 is low
-            gpio_put(turn_2a, 1);
-            gpio_put(turn_2b, 0);
-        }
-        else
-        { // in1 is low and in2 is high
-            gpio_put(turn_2b, 1);
-            gpio_put(turn_2a, 0);
-        }
+            if (w3 == 0)
+            { // in1 and in2 are high
+                gpio_put(turn_3a, 1);
+                gpio_put(turn_3b, 1);
+            }
+            else if (w3 < 0)
+            { // in1 is high and in2 is low
+                gpio_put(turn_3a, 1);
+                gpio_put(turn_3b, 0);
+            }
+            else
+            { // in1 is low and in2 is high
+                gpio_put(turn_3b, 1);
+                gpio_put(turn_3a, 0);
+            }
 
-        if (w3 == 0)
-        { // in1 and in2 are high
-            gpio_put(turn_3a, 1);
-            gpio_put(turn_3b, 1);
-        }
-        else if (w3 < 0)
-        { // in1 is high and in2 is low
-            gpio_put(turn_3a, 1);
-            gpio_put(turn_3b, 0);
-        }
-        else
-        { // in1 is low and in2 is high
-            gpio_put(turn_3b, 1);
-            gpio_put(turn_3a, 0);
-        }
+            if (v1 == 0)
+            {
+                // in1 and in2 are high
+                gpio_put(wheel_1a, 1);
+                gpio_put(wheel_1b, 1);
+            }
+            else if (v1 * flip1 < 0)
+            {
+                // in1 is high and in2 is low
+                gpio_put(wheel_1a, 1);
+                gpio_put(wheel_1b, 0);
+            }
+            else
+            {
+                // in1 is low and in2 is high
+                gpio_put(wheel_1b, 1);
+                gpio_put(wheel_1a, 0);
+            }
 
-        if (v1 == 0)
-        {
-            // in1 and in2 are high
-            gpio_put(wheel_1a, 1);
-            gpio_put(wheel_1b, 1);
-        }
-        else if (v1 * flip1 < 0)
-        {
-            // in1 is high and in2 is low
-            gpio_put(wheel_1a, 1);
-            gpio_put(wheel_1b, 0);
-        }
-        else
-        {
-            // in1 is low and in2 is high
-            gpio_put(wheel_1b, 1);
-            gpio_put(wheel_1a, 0);
-        }
+            if (v2 == 0)
+            {
+                // in1 and in2 are high
+                gpio_put(wheel_2a, 1);
+                gpio_put(wheel_2b, 1);
+            }
+            else if (v2 * flip2 < 0)
+            {
+                // in1 is high and in2 is low
+                gpio_put(wheel_2a, 1);
+                gpio_put(wheel_2b, 0);
+            }
+            else
+            {
+                // in1 is low and in2 is high
+                gpio_put(wheel_2b, 1);
+                gpio_put(wheel_2a, 0);
+            }
 
-        if (v2 == 0)
-        {
-            // in1 and in2 are high
-            gpio_put(wheel_2a, 1);
-            gpio_put(wheel_2b, 1);
+            if (v3 == 0)
+            {
+                // in1 and in2 are high
+                gpio_put(wheel_3a, 1);
+                gpio_put(wheel_3b, 1);
+            }
+            else if (v3 * flip3 < 0)
+            {
+                // in1 is high and in2 is low
+                gpio_put(wheel_3a, 1);
+                gpio_put(wheel_3b, 0);
+            }
+            else
+            {
+                // in1 is low and in2 is high
+                gpio_put(wheel_3b, 1);
+                gpio_put(wheel_3a, 0);
+            }
         }
-        else if (v2 * flip2 < 0)
-        {
-            // in1 is high and in2 is low
-            gpio_put(wheel_2a, 1);
-            gpio_put(wheel_2b, 0);
-        }
-        else
-        {
-            // in1 is low and in2 is high
-            gpio_put(wheel_2b, 1);
-            gpio_put(wheel_2a, 0);
-        }
-
-        if (v3 == 0)
-        {
-            // in1 and in2 are high
-            gpio_put(wheel_3a, 1);
-            gpio_put(wheel_3b, 1);
-        }
-        else if (v3 * flip3 < 0)
-        {
-            // in1 is high and in2 is low
-            gpio_put(wheel_3a, 1);
-            gpio_put(wheel_3b, 0);
-        }
-        else
-        {
-            // in1 is low and in2 is high
-            gpio_put(wheel_3b, 1);
-            gpio_put(wheel_3a, 0);
-        }
-
         pwm_set_chan_level(turn_1_slice, turn_1_channel, abs((int)(w1 * count_max)));
         pwm_set_chan_level(wheel_1_slice, wheel_1_channel, abs((int)(v1 * count_max)));
 
@@ -448,6 +469,17 @@ int main()
         pwm_set_chan_level(wheel_3_slice, wheel_3_channel, abs((int)(v3 * count_max)));
 
         // sleep_ms(20); // used for debugging - reduces the number of loops w/ no new i2c data
+        printf("%u %u\n", to_ms_since_boot(get_absolute_time()), to_ms_since_boot(start_time));
+    }
+
+    printf("%u\n", to_ms_since_boot(get_absolute_time()));
+
+    while (1)
+    {
+        gpio_put(LED_PIN, 1);
+        sleep_ms(500);
+        gpio_put(LED_PIN, 0);
+        sleep_ms(500);
     }
 
     return 0;

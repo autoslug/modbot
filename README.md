@@ -24,3 +24,6 @@ If the build ran correctly, you should see a /build directory that was created. 
 
 ### Flashing the Pico
 If all the above steps ran successfully, you should be able to see buttons on the bottom left of your workspace called Build and a symbol that looks like a run button. The build button will run cmake build . and make all your files. The run button will create a .elf file that you can them move onto the pico.
+
+### Verification
+There is a file called test.c in the src directory, which contains a single include statement that imports the pico sdk. If there is an error on that line, then something went wrong along the line and you will have to fix it. L.

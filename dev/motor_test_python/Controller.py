@@ -1,4 +1,4 @@
-from inputs import get_gamepad # pip install inputs
+from inputs import get_gamepad # pip install inputs, hidapi
 import math
 import threading
 from procon import ProCon
@@ -78,21 +78,37 @@ class Controller(object):
             events = get_gamepad()
             for event in events:
                 if event.code == "ABS_Y":
-                    self.LeftJoystickY = self.threshold(
-                        event.state / self.MAX_JOY_VAL
-                    )  # normalize between -1 and 1
+                    self.LeftJoystickY = event.state/32767
+                    if self.LeftJoystickY > 1:
+                        self.LeftJoystickY = 1
+                    self.LeftJoystickY = round(self.LeftJoystickY,1)
+                    # self.LeftJoystickY = self.threshold(
+                    #     event.state / self.MAX_JOY_VAL
+                    # )  # normalize between -1 and 1
                 elif event.code == "ABS_X":
-                    self.LeftJoystickX = self.threshold(
-                        event.state / self.MAX_JOY_VAL
-                    )  # normalize between -1 and 1
+                    self.LeftJoystickX = event.state/32767
+                    if self.LeftJoystickX > 1:
+                        self.LeftJoystickX = 1
+                    self.LeftJoystickX = round(self.LeftJoystickX,1)
+                    # self.LeftJoystickX = self.threshold(
+                    #     event.state / self.MAX_JOY_VAL
+                    # )  # normalize between -1 and 1
                 elif event.code == "ABS_RY":
-                    self.RightJoystickY = self.threshold(
-                        event.state / self.MAX_JOY_VAL
-                    )  # normalize between -1 and 1
+                    self.RightJoystickY = event.state/32767
+                    if self.RightJoystickY > 1:
+                        self.RightJoystickY = 1
+                    self.RightJoystickY = round(self.RightJoystickY,1)
+                    # self.RightJoystickY = self.threshold(
+                    #     event.state / self.MAX_JOY_VAL
+                    # )  # normalize between -1 and 1
                 elif event.code == "ABS_RX":
-                    self.RightJoystickX = self.threshold(
-                        event.state / self.MAX_JOY_VAL
-                    )  # normalize between -1 and 1
+                    self.RightJoystickX = event.state/32767
+                    if self.RightJoystickX > 1:
+                        self.RightJoystickX = 1
+                    self.RightJoystickX = round(self.RightJoystickX,1)
+                    # self.RightJoystickX = self.threshold(
+                    #     event.state / self.MAX_JOY_VAL
+                    # )  # normalize between -1 and 1
                 elif event.code == "ABS_Z":
                     self.LeftTrigger = self.threshold(
                         event.state / self.MAX_TRIG_VAL
@@ -121,14 +137,18 @@ class Controller(object):
                     self.Back = event.state
                 elif event.code == "BTN_START":
                     self.Start = event.state
-                elif event.code == "BTN_TRIGGER_HAPPY1":
-                    self.LeftDPad = event.state
-                elif event.code == "BTN_TRIGGER_HAPPY2":
-                    self.RightDPad = event.state
-                elif event.code == "BTN_TRIGGER_HAPPY3":
-                    self.UpDPad = event.state
-                elif event.code == "BTN_TRIGGER_HAPPY4":
-                    self.DownDPad = event.state
+                elif event.code == "ABS_HAT0X":
+                    self.LeftDPad = self.RightDPad = 0
+                    if event.state == -1:
+                        self.LeftDPad = 1
+                    if event.state == 1:
+                        self.RightDPad = 1
+                elif event.code == "ABS_HAT0Y":
+                    self.UpDPad = self.DownDPad = 0
+                    if event.state == -1:
+                        self.DownDPad = 1
+                    if event.state == 1:
+                        self.UpDPad = 1
 
 
 class GemXboxController(Controller):
@@ -245,7 +265,7 @@ class NintendoProController(Controller):
         self.UpDPad = buttons[ProCon.Button.UP]
         self.DownDPad = buttons[ProCon.Button.DOWN]
 
-
+import time
 if __name__ == "__main__":
     joy = Controller()
     # joy = GemXboxController()
@@ -256,3 +276,4 @@ if __name__ == "__main__":
         except Exception as e:
             print("error!", e)
             break
+        time.sleep(0.1)

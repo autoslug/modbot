@@ -119,27 +119,27 @@ private:
     static uint encoder_count;
 };
 
-uint EncoderFactory::encoder_count = 0;
+// uint EncoderFactory::encoder_count = 0;
 
-int main()
-{
-    stdio_init_all();
+// int main()
+// {
+//     stdio_init_all();
 
-    // Base pin to connect the A phase of the encoder (yellow wire).
-    // The B phase must be connected to the next pin (green wire)
-    const uint PIN_STEER = 14;
-    const uint PIN_DRIVE = 16;
+//     // Base pin to connect the A phase of the encoder (yellow wire).
+//     // The B phase must be connected to the next pin (green wire)
+//     const uint PIN_STEER = 14;
+//     const uint PIN_DRIVE = 16;
 
-    Encoder steer = EncoderFactory::createEncoder(PIN_STEER, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
-    Encoder drive = EncoderFactory::createEncoder(PIN_DRIVE, ROT_PER_TICK * DEG_PER_ROT);
+//     Encoder steer = EncoderFactory::createEncoder(PIN_STEER, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
+//     Encoder drive = EncoderFactory::createEncoder(PIN_DRIVE, ROT_PER_TICK * DEG_PER_ROT);
 
-    while (1)
-    {
-        steer.update(20);
-        drive.update(20);
+//     while (1)
+//     {
+//         steer.update(20);
+//         drive.update(20);
 
-        printf("steer position %8f, velocity %6f\n", steer.get_pos(), steer.get_velocity());
-        printf("drive position %8f, velocity %6f\n", drive.get_pos(), drive.get_velocity());
-        sleep_ms(20);
-    }
-}
+//         printf("steer position %8f, velocity %6f\n", steer.get_pos(), steer.get_velocity());
+//         printf("drive position %8f, velocity %6f\n", drive.get_pos(), drive.get_velocity());
+//         sleep_ms(20);
+//     }
+// }

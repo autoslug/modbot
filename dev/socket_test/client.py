@@ -8,7 +8,7 @@ from Controller import *
 #need to test with controller to see if server has anything besides an array of zeros.
 #need to add signal handling for control-c so it exits with a zero status code.
 
-HOST = "127.0.0.1" 
+HOST = socket.gethostbyname(socket.gethostname())
 PORT = 65432
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

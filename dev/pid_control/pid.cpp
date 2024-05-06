@@ -5,29 +5,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+float calculate(float input, float timeStep);
+void updateIntegralDerivative();
 class pid { //pid loop
   public:
-    pid() {
-        //init pid constants
+    pid(float P, float I, float D) {
+        this->P = P;
+        this->I = I;
+        this->D = D;
     }
-    float calculate(float input, float timeStep){
-        float output = this->P * input + this-> I * this -> Integral;
-        output += this-> D * LastOut - output / timeStep;
-        Integral+=(output*timeStep)
-        return output
+
+    setup(){ // PICO SPECIFIC: create repeating timer, setup callbacks
+        this->timer = repeating_timer_t timer;
+        add_repeating_timer_ms(100, calculate, NULL, timer);
+        add_repeating_timer_ms(10, updateIntegralDerivative, NULL, timer);
     }
 
   private:
-    bool callback(repeating_timer_t *rt){
-        //calculate
+    
+    void calculate(float input, float timeStep){
+        this->output = this->P * input + this-> I * this -> Integral + this-> D * this -> Derivative;
     }
-    void loop(){
-        repeating_timer_t timer; // (add to main, look at periodic sampler)
-        add_repeating_timer_ms(100, callback, NULL, timer);
-    }
-    float P = 1;
-    float I = 1;
-    float D = 1;
+
+    float P;
+    float I;
+    float D;
+    repeating_timer_t timer = {};
     float Integral = 0;
-    float LastOut = 0;
+    float Derivative = 0;
+    float output = 0;
 };

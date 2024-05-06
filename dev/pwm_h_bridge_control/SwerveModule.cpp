@@ -36,7 +36,7 @@ class SwerveModule {
     }
 
     // initialize all pins
-    void Setup() {
+    void Setup() { //PICO SPECIFIC
         stdio_init_all();
         // h-bridge requires two binary signals for direction, initialize the in1, in2 pins
         gpio_init(this->turn_in1_pin);

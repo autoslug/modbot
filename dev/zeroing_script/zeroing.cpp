@@ -5,10 +5,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "pid.cpp"
+
 class Zeroing { //store value of sensor
   public:
-    Zeroing(int pin) {
+    Zeroing(int pin, PID motor1, PID motor2, PID motor3) {
         this->readPin = pin;
+        this->motor1 = motor1;
+        this->motor2 = motor2;
+        this->motor3 = motor3;
     }
     void Setup() {
         stdio_init_all();
@@ -23,9 +28,14 @@ class Zeroing { //store value of sensor
   private:
     void zero() { //put in here for now
         while (!(this->Read())) {
-            // spin
+            this->motor1.update(1);
+            this->motor2.update(1);
+            this->motor3.update(1);
         }
     }
     int readPin;
     int zerod = false;
+    PID motor1;
+    PID motor2;
+    PID motor3;
 };

@@ -5,13 +5,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../pid_control/pid.cpp"
+
 #define COUNT_MAX 65535
+
+// enum for wheel and turn pid loop selection
+typedef enum {
+    PID_TURN_SELECTION = 0,
+    PID_WHEEL_SELECTION,
+    PID_BOTH_SELECTION
+}PID_Selection;
 
 // class to instantiate swerve module
 class SwerveModule {
   public:
     // store all pin ids
-    SwerveModule(int turnPin, int wheelPin, int pwmPin, int countMax = COUNT_MAX, int swapPwmChan = 0) {
+    // swerveModule is controlled by PID loops, module control is abstracted to PID only!
+    SwerveModule(int turnPin, int wheelPin, int pwmPin, PID wheelPID, PID turnPID, int countMax = COUNT_MAX, int swapPwmChan = 0) {
         // two motors per module, each requiring 3 pins
         // two pins to define h-bridge control and one pin for pwm (since there are 2 motors, there are 2 pwm pins)
         // constructor assumes that all pins are in sets of 2 and will be next to eachother on an even interval (e.g pin 0 and 1, pin 2 and 4, etc)
@@ -33,6 +43,9 @@ class SwerveModule {
             this->wheelChan = PWM_CHAN_B;
             this->turnChan = PWM_CHAN_A;
         }
+        //PID loop variable setup
+        this->wheelPID = wheelPID;
+        this->turnPID = turnPID;
     }
 
     // initialize all pins
@@ -73,6 +86,21 @@ class SwerveModule {
         pwm_set_enabled(this->pwm_slice, true);
     }
 
+    void updatePID(float turn, float wheel, int selection){
+        if(selection == PID_Selection.PID_TURN_SELECTION){
+            this->wheelPID.updateTarget(turn);
+        }else if(selection == PID_Selection.PID_WHEEL_SELECTION){
+            this->turnPID.updateTarget(wheel);
+        }else {
+            this->wheelPID.updateTarget(turn);
+            this->turnPID.updateTarget(wheel);
+        }
+    }
+
+    
+
+    private:
+    //private drive function control entirely by PID loops
     void Drive(float turn, float wheel) { // currently assuming turn & wheel are from -1 to 1, probably need to change later
         if (turn == 0) { // in1 and in2 are high
             gpio_put(turn_in1_pin, 1);
@@ -103,7 +131,6 @@ class SwerveModule {
     }
 
     //private variables for storing pins and constants
-  private:
     int turn_in1_pin;
     int turn_in2_pin;
     int wheel_in1_pin;
@@ -114,4 +141,6 @@ class SwerveModule {
     int wheel_channel = PWM_CHAN_A;
     int turn_channel = PWM_CHAN_B;
     int countMax = COUNT_MAX;
+    PID wheelPID;
+    PID turnPID;
 };

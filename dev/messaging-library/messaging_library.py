@@ -4,6 +4,7 @@ raspberry pis and raspberry picos for modbot
 """
 
 from enum import Enum
+import compute_module_id
 
 HEAD = 0xCC
 TAIL = 0xB9
@@ -58,7 +59,8 @@ def messaging_bsd_checksum(payload_string: bytes) -> int:
     return checksum
 
 
-def messaging_readbuffer(buffer_string: bytes, result_string: bytes) -> bool:
+def messaging_readbuffer(buffer_string: bytes, result_string: bytes,
+                         robot_state: Enum) -> bool:
     """
 
     messaging_readbuffer: Uses state machine to take the buffer parameter
@@ -80,6 +82,8 @@ def messaging_readbuffer(buffer_string: bytes, result_string: bytes) -> bool:
     Args:
     buffer_string (bytes): string that will be processed
     result_string (bytes): string that the result is stored in
+    robot_state (enum): variable containing state of robot that is modified
+    when a message is fully processed
 
     Returns:
     enum: true false or none based on success of function
@@ -93,6 +97,7 @@ def messaging_readbuffer(buffer_string: bytes, result_string: bytes) -> bool:
     calculated_checksum = 0
     message_id = 0
     message_parse_result = MessageParseResult.MESSAGE_PARSE_NONE
+    robot_result_state = 0
 
     # note: since I am writing both the library in c and python,
     # I wanted to make the logic the same between both, so it could be easier
@@ -116,16 +121,12 @@ def messaging_readbuffer(buffer_string: bytes, result_string: bytes) -> bool:
 
         elif state == MessageReadState.MESSAGE_PAYLOAD:
 
-            # id valid check
+            # assign/store id
             if payload_idx == 0:
                 message_id = current_char
 
-            # process payload based on ID
-            if message_id == 0:  # example 'processing'
-                result_string = "TEST"
-                if result_string:  # using to suppress error/warning
-                    pass
-
+            if result_string:
+                pass
             # actual payload range check
             # (this is implemented slightly differently
             # as python for loops work differently)
@@ -138,6 +139,9 @@ def messaging_readbuffer(buffer_string: bytes, result_string: bytes) -> bool:
                 if current_char == TAIL:
                     state = MessageReadState.MESSAGE_ERROR
                 else:
+                    robot_result_state = compute_module_id.\
+                        messaging_process_payload(payload_string[1:],
+                                                  message_id)
                     state = MessageReadState.MESSAGE_TAIL
 
         elif state == MessageReadState.MESSAGE_TAIL:
@@ -157,6 +161,8 @@ def messaging_readbuffer(buffer_string: bytes, result_string: bytes) -> bool:
             if current_char == 0x0D and next_char == 0x0A:
                 message_parse_result = MessageParseResult.MESSAGE_PARSE_SUCCESS
                 state = MessageReadState.MESSAGE_HEAD
+                robot_state = robot_result_state
+                print(str(robot_state)[0:0])  # silence error
                 break
             else:
                 state = MessageReadState.MESSAGE_ERROR
@@ -168,7 +174,7 @@ def messaging_readbuffer(buffer_string: bytes, result_string: bytes) -> bool:
     return message_parse_result
 
 
-def messaging_write_message(payload: str) -> bytes:
+def messaging_write_message(payload: bytes) -> bytes:
     """
 
     WriteMessage:
@@ -184,10 +190,10 @@ def messaging_write_message(payload: str) -> bytes:
     message (str): string that the message will be written to
     """
     payload_len = len(payload)
-    payload_checksum = messaging_bsd_checksum(payload.encode())
+    payload_checksum = messaging_bsd_checksum(payload)
     converted_payload = []
     for char in payload:
-        converted_payload.append(ord(char))
+        converted_payload.append(char)
     bytes_return = bytes([HEAD, payload_len] + converted_payload +
                          [TAIL, payload_checksum, 13, 10])
     return bytes_return

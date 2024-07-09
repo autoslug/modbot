@@ -1,3 +1,4 @@
+#include "swerve-module-id.h"
 
 #define PAYLOAD_MAX_LEN 127
 #define HEAD_ID 0xCC
@@ -39,7 +40,7 @@ char MessagingBSDChecksum(char* payloadString, unsigned char payloadLen) {
 
 /**
  * ReadBuffer: Uses state machine to take the buffer parameter and processes the message into the result string;
- * Returns true/false based on if conversion was successful.
+ * Returns true/false based on if conversion was successful. Changes value of robotState if message is valid.
  * 
  * \nPacket Structure:
  * HEAD LENGTH PAYLOAD TAIL CHECKSUM END
@@ -55,10 +56,12 @@ char MessagingBSDChecksum(char* payloadString, unsigned char payloadLen) {
  * @param bufferString string that will be processed
  * @param resultString string that the result is stored in
  * @param bufferLength length of buffer function parses through
+ * @param robotState pointer to variable containing state of robot that is modified
+ *  when a message is fully processed
  * 
  * @return true or false based on success of function 
  */
-char MessagingReadBuffer(char* bufferString, char* resultString, int bufferLength) { // turn result to struct later
+char MessagingReadBuffer(char* bufferString, char* resultString, int bufferLength, char* robotState) { // turn result to struct later
     short idx = 0;
     char state = MESSAGE_HEAD;
     char currentChar = bufferString[idx];
@@ -67,6 +70,7 @@ char MessagingReadBuffer(char* bufferString, char* resultString, int bufferLengt
     char messageID = 0;
     char calculatedChecksum = 0;
     char messageParseResult = MESSAGE_PARSE_NONE;
+    char robotResultState = 0;
 
     while (idx < bufferLength) {
         if(state == MESSAGE_HEAD) {
@@ -88,18 +92,9 @@ char MessagingReadBuffer(char* bufferString, char* resultString, int bufferLengt
 
         }else if(state == MESSAGE_PAYLOAD) {
 
-            // id valid check
+            // assign/store id
             if(payloadIdx == 0) {
                 messageID = currentChar;
-
-                // check against list of IDS
-                //
-                //
-            }
-
-            // process payload based on ID
-            if(messageID == 0) { // example 'processing'
-                resultString = "TEST";
             }
 
             // actual payload length check
@@ -113,6 +108,7 @@ char MessagingReadBuffer(char* bufferString, char* resultString, int bufferLengt
                 if(currentChar == (char)TAIL_ID) {
                     state = MESSAGE_ERROR;
                 }else {
+                    robotResultState = MessagingProcessPayload(bufferString + idx - payloadLen + 2, messageID, payloadLen - 1);
                     state = MESSAGE_TAIL;
                 }
             }
@@ -136,6 +132,7 @@ char MessagingReadBuffer(char* bufferString, char* resultString, int bufferLengt
             if(currentChar == '\r' && nextChar == '\n') {
                 messageParseResult = MESSAGE_PARSE_SUCCESS;
                 state = MESSAGE_HEAD;
+                *robotState = robotResultState;
                 break;
             }else {
                 state = MESSAGE_ERROR;

@@ -1,0 +1,201 @@
+#include <stdio.h>
+
+#include "quadrature_encoder.cpp"
+#include "SwerveModule.cpp"
+#include "messaging-library.h"
+#include "zeroing.cpp"
+
+char robotState = 0;
+
+uint EncoderFactory::encoder_count = 0;
+
+
+
+// Define constants for I2C communication
+#define I2C_PICO_ADDR 0x08
+#define I2C_SDA_PIN 0
+#define I2C_SCL_PIN 1
+#define I2C_PORT i2c0
+#define I2C_BAUDRATE 100 * 1000
+
+// Define the length of the data packet
+#define I2C_DATA_LENGTH 10
+
+#define MESSAGE_START 0xFA
+#define MESSAGE_STOP 0xFB
+
+
+// digital low on in# pins indicates direction, both high is no signal
+#define turn_in1_pin 4 // 1A, forward direction
+#define turn_in2_pin 5 // 1B, backward direction
+
+// #define motor_pwm_pin 9 // 2A, 2B take up by motor speed
+#define turn_pwm_pin 9  // 2A, turn motor speed
+#define wheel_pwm_pin 8 // 2B, wheel motor speed
+#define pwm_slice 4
+#define turn_channel PWM_CHAN_B
+#define wheel_channel PWM_CHAN_A
+
+#define wheel_in1_pin 6 // 3A, forward direction
+#define wheel_in2_pin 7 // 3B, backard direction
+
+// #define freq 500 // note: use clock management frequencies to set frequency
+// #define duty_cycle 1
+#define count_max 65535
+
+
+// Buffer for incoming data
+uint8_t incoming_data[I2C_DATA_LENGTH];
+
+// Status of the input data
+uint8_t input_status = 0;
+
+// Last event that occurred
+int last_event = 0;
+
+// Index of the current data byte
+int data_index = 0;
+
+// Buffer for the input data
+uint8_t input[I2C_DATA_LENGTH - 2];
+
+// Handler for I2C events
+static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
+{
+    switch (event)
+    {
+    case I2C_SLAVE_RECEIVE:{
+        // Read the data
+        uint8_t tmp = i2c_read_byte_raw(i2c);
+        // Check if the data is valid
+        // TODO: probably revert this back to the original, we don't really need the MESSAGE_START stuff
+        if ((incoming_data[0] == 0x00 && tmp != MESSAGE_START) || data_index >= I2C_DATA_LENGTH)
+        {
+            printf("Invalid data %x\n", tmp);
+            break;
+        }
+        // Store the data
+        incoming_data[data_index] = tmp;
+        // printf("Data: %d\n", incoming_data[data_index]);
+        data_index++;
+        // set the event status to received
+        last_event = 1;
+        break;
+    }
+        
+
+    case I2C_SLAVE_REQUEST: // Pi is requesting data
+        // Write the data into the void
+        i2c_write_byte_raw(i2c, (uint8_t)input_status);
+        // set the event status to sent
+        last_event = 2;
+        break;
+
+    case I2C_SLAVE_FINISH: // Pi has signalled Stop / Restart
+        // if the last event was a receive event and the data is valid
+        if (last_event == 1)
+            if (incoming_data[0] == MESSAGE_START && incoming_data[I2C_DATA_LENGTH - 1] == MESSAGE_STOP)
+            {
+                // move the data into the input array
+                for (int i = 0; i < I2C_DATA_LENGTH - 2; i++)
+                {
+                    input[i] = (int)incoming_data[i + 1];
+                }
+                // set the input status to ready
+                input_status = 1;
+
+                // Reset incoming_data
+                for (int i = 0; i < I2C_DATA_LENGTH; i++)
+                {
+                    incoming_data[i] = 0x00;
+                }
+            }
+            data_index = 0;
+        break;
+    default:
+        break;
+    }
+}
+
+
+
+int main(){
+    /**
+     * DEFINE ENCODERS
+     * DEFINE PID OBJ
+     * DEFINE PWM_H_BRIDGE
+     * DEFINE ZEROING
+     */
+
+    Encoder steer1 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
+    Encoder drive1 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT);
+
+    Encoder steer2 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
+    Encoder drive2 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT);
+
+    Encoder steer3 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
+    Encoder drive3 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT);
+
+    PID steer1PID = PID(0,0,0,steer1);
+    PID drive1PID = PID(0,0,0,drive1);
+
+    PID steer2PID = PID(0,0,0,steer2);
+    PID drive2PID = PID(0,0,0,drive2);
+
+    PID steer3PID = PID(0,0,0,steer3);
+    PID drive3PID = PID(0,0,0,drive3);
+
+    SwerveModule module1 = SwerveModule(0,0,0,steer1PID,drive1PID);
+    SwerveModule module2 = SwerveModule(0,0,0,steer2PID,drive2PID);
+    SwerveModule module3 = SwerveModule(0,0,0,steer3PID,drive3PID);
+
+    Zeroing zeroing = Zeroing(0,0,0,steer1,steer2,steer3);
+    /**
+     * SETUP EVERYTHING
+     */
+    steer1PID.setup();
+    drive1PID.setup();
+
+    steer2PID.setup();
+    drive2PID.setup();
+
+    steer3PID.setup();
+    drive3PID.setup();
+
+    module1.Setup();
+    module2.Setup();
+    module3.Setup();
+
+
+    //I2C Setup
+
+    stdio_init_all();
+
+    // Initialize I2C at 100kHz
+    i2c_init(I2C_PORT, I2C_BAUDRATE);
+    gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
+
+    // Set I2C address for Pico
+    i2c_slave_init(I2C_PORT, I2C_PICO_ADDR, &i2c_handler);
+
+
+    while(1){
+        if(robotState == STATE_READ_RESULT_ARRAY){
+            module1.updatePID(resultArray[0],resultArray[1],PID_BOTH_SELECTION);
+            module2.updatePID(resultArray[2],resultArray[3],PID_BOTH_SELECTION);
+            module3.updatePID(resultArray[4],resultArray[5],PID_BOTH_SELECTION);
+        }else if(robotState == STATE_ZERO_MOTORS){
+            zeroing.Zero();
+        }else if(robotState == STATE_RETURN_DATA){
+            char returnMessage[I2C_DATA_LENGTH] = {0};
+            MessagingWriteMessage("DATAAAAAAAA", returnMessage);
+            // SEND DATAA
+        }
+        if(input_stats == 1){
+            char* resultString;
+            MessagingReadBuffer(incoming_data,resultString,I2C_DATA_LENGTH,&robotState);
+        }
+    }
+    return 0;
+}

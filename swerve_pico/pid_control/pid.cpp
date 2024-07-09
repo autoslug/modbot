@@ -18,7 +18,7 @@ class PID { //pid loop
         this->encoder = encoder;
         this->timestep = timestep //timestep for updating output
         this->substep = this->timestep / (float)substep // how many times to update integral/derivative per timestep
-        this->swerveModule = swerveModule;
+        // this->swerveModule = swerveModule; //WHY IS THIS HERE?
     }
 
     void setup(){ // PICO SPECIFIC: create repeating timer, setup callbacks

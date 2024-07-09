@@ -6,6 +6,7 @@
         "initializer_list": "c",
         "type_traits": "c",
         "xstring": "c",
-        "xutility": "c"
+        "xutility": "c",
+        "zeroing.cpp": "c"
     }
 }

@@ -25,7 +25,6 @@ class Zeroing { //store value of sensor
         return this->zerod;
     }
 
-  private:
     void zero() { //put in here for now
         while (!(this->Read())) {
             this->motor1.update(1);
@@ -33,6 +32,7 @@ class Zeroing { //store value of sensor
             this->motor3.update(1);
         }
     }
+  private:
     int readPin;
     int zerod = false;
     PID motor1;

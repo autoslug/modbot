@@ -2,6 +2,7 @@ import fcntl
 import os
 import time
 
+
 I2C_PRIM = 0x0703
 
 # open i2c devices (sudo apt install i2c-tools)

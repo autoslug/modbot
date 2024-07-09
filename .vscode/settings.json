@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "messaging-library.h": "c",
+        "stdio.h": "c",
+        "messaging-library-ids.h": "c",
+        "initializer_list": "c",
+        "type_traits": "c",
+        "xstring": "c",
+        "xutility": "c"
+    }
+}

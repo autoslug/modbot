@@ -1,14 +1,11 @@
 #include <stdio.h>
 
-#include "quadrature_encoder.cpp"
-#include "SwerveModule.cpp"
+#include "motor-library.cpp"
 #include "messaging-library.h"
-#include "zeroing.cpp"
+#include "control-library.cpp"
+#include "sensor-library.cpp"
 
 char robotState = 0;
-
-uint EncoderFactory::encoder_count = 0;
-
 
 
 // Define constants for I2C communication
@@ -121,51 +118,29 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 
 int main(){
     /**
-     * DEFINE ENCODERS
-     * DEFINE PID OBJ
-     * DEFINE PWM_H_BRIDGE
-     * DEFINE ZEROING
+     * DEFINE AND SETUP MOTORS
      */
+    Motor turn_motor1 = new Motor(0,0,0);
+    Motor drive_motor1 = new Motor(0,0,0);
+    Motor turn_motor2 = new Motor(0,0,0);
+    Motor drive_motor2 = new Motor(0,0,0);
+    Motor turn_motor3 = new Motor(0,0,0);
+    Motor drive_motor3 = new Motor(0,0,0);
+    
+    PID pid1 = new PID(0,0,0, turn_motor1);
+    PID pid2 = new PID(0,0,0, drive_motor1);
+    PID pid3 = new PID(0,0,0, turn_motor2);
+    PID pid4 = new PID(0,0,0, drive_motor2);
+    PID pid5 = new PID(0,0,0, turn_motor3);
+    PID pid6 = new PID(0,0,0, drive_motor3);
 
-    Encoder steer1 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
-    Encoder drive1 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT);
+    SwerveModule module1 = new SwerveModule(pid1,pid2);
+    SwerveModule module2 = new SwerveModule(pid3,pid4);
+    SwerveModule module3 = new SwerveModule(pid5,pid6);
 
-    Encoder steer2 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
-    Encoder drive2 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT);
-
-    Encoder steer3 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT * PULLEY_RATIO);
-    Encoder drive3 = EncoderFactory::createEncoder(0, ROT_PER_TICK * DEG_PER_ROT);
-
-    PID steer1PID = PID(0,0,0,steer1);
-    PID drive1PID = PID(0,0,0,drive1);
-
-    PID steer2PID = PID(0,0,0,steer2);
-    PID drive2PID = PID(0,0,0,drive2);
-
-    PID steer3PID = PID(0,0,0,steer3);
-    PID drive3PID = PID(0,0,0,drive3);
-
-    SwerveModule module1 = SwerveModule(0,0,0,steer1PID,drive1PID);
-    SwerveModule module2 = SwerveModule(0,0,0,steer2PID,drive2PID);
-    SwerveModule module3 = SwerveModule(0,0,0,steer3PID,drive3PID);
-
-    Zeroing zeroing = Zeroing(0,0,0,steer1,steer2,steer3);
-    /**
-     * SETUP EVERYTHING
-     */
-    steer1PID.setup();
-    drive1PID.setup();
-
-    steer2PID.setup();
-    drive2PID.setup();
-
-    steer3PID.setup();
-    drive3PID.setup();
-
-    module1.Setup();
-    module2.Setup();
-    module3.Setup();
-
+    ZeroingSensor sensor1 = new ZeroingSensor(0);
+    ZeroingSensor sensor2 = new ZeroingSensor(0);
+    ZeroingSensor sensor3 = new ZeroingSensor(0);
 
     //I2C Setup
 
@@ -182,11 +157,33 @@ int main(){
 
     while(1){
         if(robotState == STATE_READ_RESULT_ARRAY){
-            module1.updatePID(resultArray[0],resultArray[1],PID_BOTH_SELECTION);
-            module2.updatePID(resultArray[2],resultArray[3],PID_BOTH_SELECTION);
-            module3.updatePID(resultArray[4],resultArray[5],PID_BOTH_SELECTION);
+            module1.SetPidTargets(resultArray[0],resultArray[1]);
+            module2.SetPidTargets(resultArray[2],resultArray[3]);
+            module3.SetPidTargets(resultArray[4],resultArray[5]);
         }else if(robotState == STATE_ZERO_MOTORS){
-            zeroing.Zero();
+            module1.TogglePids(false);
+            module2.TogglePids(false);
+            module3.TogglePids(false);
+            while(!sensor1.Read()){
+                turn_motor1.SetPwmPercentage(0.1);
+            }
+            turn_motor1.SetPwmPercentage(0);
+            while(!sensor2.Read()){
+                turn_motor2.SetPwmPercentage(0.1);
+            }
+            turn_motor2.SetPwmPercentage(0);
+            while(!sensor3.Read()){
+                turn_motor3.SetPwmPercentage(0.1);
+            }
+            turn_motor3.SetPwmPercentage(0);
+
+            module1.ResetPids();
+            module2.ResetPids();
+            module3.ResetPids();
+
+            module1.TogglePids(true);
+            module2.TogglePids(true);
+            module3.TogglePids(true);
         }else if(robotState == STATE_RETURN_DATA){
             char returnMessage[I2C_DATA_LENGTH] = {0};
             MessagingWriteMessage("DATAAAAAAAA", returnMessage);

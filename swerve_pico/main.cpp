@@ -1,9 +1,14 @@
 #include <stdio.h>
 
-#include "motor-library.cpp"
+#include <hardware/i2c.h>
+#include <hardware/pwm.h>
+#include <pico/i2c_slave.h>
+#include <pico/stdlib.h>
+
+#include "motor-library.h"
 #include "messaging-library.h"
-#include "control-library.cpp"
-#include "sensor-library.cpp"
+#include "control-library.h"
+#include "sensor-library.h"
 
 char robotState = 0;
 
@@ -39,7 +44,8 @@ char robotState = 0;
 // #define freq 500 // note: use clock management frequencies to set frequency
 // #define duty_cycle 1
 #define count_max 65535
-
+//temporary address, make comm protocol to send/recieve messages upon linkage/ on bootup
+#define PI_ADDRESS 1
 
 // Buffer for incoming data
 uint8_t incoming_data[I2C_DATA_LENGTH];
@@ -55,6 +61,7 @@ int data_index = 0;
 
 // Buffer for the input data
 uint8_t input[I2C_DATA_LENGTH - 2];
+uint8_t output[I2C_DATA_LENGTH - 2];
 
 // Handler for I2C events
 static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
@@ -83,8 +90,9 @@ static void i2c_handler(i2c_inst_t *i2c, i2c_slave_event_t event)
 
     case I2C_SLAVE_REQUEST: // Pi is requesting data
         // Write the data into the void
-        i2c_write_byte_raw(i2c, (uint8_t)input_status);
+        // i2c_write_byte_raw(i2c, (uint8_t)input_status);
         // set the event status to sent
+        i2c_write_raw_blocking(i2c, output, I2C_DATA_LENGTH - 2);
         last_event = 2;
         break;
 
@@ -120,27 +128,27 @@ int main(){
     /**
      * DEFINE AND SETUP MOTORS
      */
-    Motor turn_motor1 = new Motor(0,0,0);
-    Motor drive_motor1 = new Motor(0,0,0);
-    Motor turn_motor2 = new Motor(0,0,0);
-    Motor drive_motor2 = new Motor(0,0,0);
-    Motor turn_motor3 = new Motor(0,0,0);
-    Motor drive_motor3 = new Motor(0,0,0);
+    Motor turn_motor1 = Motor(0,0,0);
+    Motor drive_motor1 = Motor(0,0,0);
+    Motor turn_motor2 = Motor(0,0,0);
+    Motor drive_motor2 = Motor(0,0,0);
+    Motor turn_motor3 = Motor(0,0,0);
+    Motor drive_motor3 = Motor(0,0,0);
     
-    PID pid1 = new PID(0,0,0, turn_motor1);
-    PID pid2 = new PID(0,0,0, drive_motor1);
-    PID pid3 = new PID(0,0,0, turn_motor2);
-    PID pid4 = new PID(0,0,0, drive_motor2);
-    PID pid5 = new PID(0,0,0, turn_motor3);
-    PID pid6 = new PID(0,0,0, drive_motor3);
+    PID pid1 = PID(0,0,0, turn_motor1);
+    PID pid2 = PID(0,0,0, drive_motor1);
+    PID pid3 = PID(0,0,0, turn_motor2);
+    PID pid4 = PID(0,0,0, drive_motor2);
+    PID pid5 = PID(0,0,0, turn_motor3);
+    PID pid6 = PID(0,0,0, drive_motor3);
 
-    SwerveModule module1 = new SwerveModule(pid1,pid2);
-    SwerveModule module2 = new SwerveModule(pid3,pid4);
-    SwerveModule module3 = new SwerveModule(pid5,pid6);
+    SwerveDrive module1 = SwerveDrive(pid1,pid2);
+    SwerveDrive module2 = SwerveDrive(pid3,pid4);
+    SwerveDrive module3 = SwerveDrive(pid5,pid6);
 
-    ZeroingSensor sensor1 = new ZeroingSensor(0);
-    ZeroingSensor sensor2 = new ZeroingSensor(0);
-    ZeroingSensor sensor3 = new ZeroingSensor(0);
+    ZeroingSensor sensor1 = ZeroingSensor(0);
+    ZeroingSensor sensor2 = ZeroingSensor(0);
+    ZeroingSensor sensor3 = ZeroingSensor(0);
 
     //I2C Setup
 
@@ -185,13 +193,15 @@ int main(){
             module2.TogglePids(true);
             module3.TogglePids(true);
         }else if(robotState == STATE_RETURN_DATA){
-            char returnMessage[I2C_DATA_LENGTH] = {0};
-            MessagingWriteMessage("DATAAAAAAAA", returnMessage);
-            // SEND DATAA
+            // MessagingWriteMessage("DATAAAAAAAA", output);
+            // SEND DATA
+        }else if(robotState == STATE_WRITE_HEARTBEAT){
+            // MessagingWriteMessage((unsigned char)0x0, (char*)output);
+            // SEND DATA
         }
-        if(input_stats == 1){
+        if(input_status == 1){
             char* resultString;
-            MessagingReadBuffer(incoming_data,resultString,I2C_DATA_LENGTH,&robotState);
+            MessagingReadBuffer((char*)incoming_data,resultString,I2C_DATA_LENGTH,&robotState);
         }
     }
     return 0;

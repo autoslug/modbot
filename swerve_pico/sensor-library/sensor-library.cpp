@@ -1,22 +1,21 @@
-#include <hardware/i2c.h>
-#include <hardware/pwm.h>
-#include <pico/i2c_slave.h>
 #include <pico/stdlib.h>
+#include <hardware/gpio.h>
 
-class ZeroingSensor{
-    ZeroingSensor(int pin){
-        this->readPin = pin;
-    }
+#include "sensor-library.h"
 
-    void Setup() {
-        stdio_init_all();
-        gpio_init(this->readPin);
-        gpio_set_dir(this->readPin, GPIO_IN);
-    }
+ZeroingSensor::ZeroingSensor(int pin)
+{
+    this->readPin = pin;
+}
 
-    int Read() {
-        gpio_get(this->readPin);
-    }
-    private:
-        int readPin;
-};
+void ZeroingSensor::Setup()
+{
+    stdio_init_all();
+    gpio_init(this->readPin);
+    gpio_set_dir(this->readPin, GPIO_IN);
+}
+
+int ZeroingSensor::Read()
+{
+    gpio_get(this->readPin);
+}

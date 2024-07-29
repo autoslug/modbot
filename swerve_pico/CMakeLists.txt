@@ -19,12 +19,20 @@ endif()
 
 project(swerve-pico C CXX ASM)
 
+# enable error handling
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
+add_executable(swerve-pico swerve-pico.cpp
+${CMAKE_CURRENT_LIST_DIR}/motor-library/motor-library.cpp
+${CMAKE_CURRENT_LIST_DIR}/control-library/control-library.cpp
+${CMAKE_CURRENT_LIST_DIR}/sensor-library/sensor-library.cpp
+${CMAKE_CURRENT_LIST_DIR}/messaging-library/messaging-library.cpp
+)
 
-add_executable(swerve-pico main.cpp )
 
 pico_set_program_name(swerve-pico "swerve-pico")
 pico_set_program_version(swerve-pico "0.1")
@@ -37,7 +45,8 @@ target_link_libraries(swerve-pico
         pico_stdlib
         pico_i2c_slave
         hardware_i2c
-        )
+        hardware_pio
+)
 
 # Add the standard include files to the build
 target_include_directories(swerve-pico PRIVATE
@@ -46,13 +55,20 @@ target_include_directories(swerve-pico PRIVATE
 )
 
 # Add any user requested libraries
-target_link_libraries(
-  hardware_gpio
+target_link_libraries(swerve-pico
   hardware_pwm
-  hardware_timer
   hardware_pio
-  hardware_clocks
-  )
+)
+
+# # add all subdirectories of project
+ target_include_directories(swerve-pico PRIVATE
+ ${CMAKE_CURRENT_LIST_DIR}/control-library
+ ${CMAKE_CURRENT_LIST_DIR}/messaging-library
+ ${CMAKE_CURRENT_LIST_DIR}/motor-library
+ ${CMAKE_CURRENT_LIST_DIR}/sensor-library
+)
+
+# link pio
+pico_generate_pio_header(swerve-pico ${CMAKE_CURRENT_LIST_DIR}/motor-library/quadrature_encoder.pio)
 
 pico_add_extra_outputs(swerve-pico)
-

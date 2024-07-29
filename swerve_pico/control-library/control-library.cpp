@@ -1,9 +1,11 @@
+#include "pico/stdlib.h"
+#include "time.h"
 #include "control-library.h"
 
 bool calculateCallback(repeating_timer_t *rt);
 bool updateIntergralDerivativeCallback(repeating_timer_t *rt);
 
-PID::PID(float P, float I, float D, Motor motor, char tuningMode = PID_TUNING_MODE_POSITION, int timestep = 100, int substep = 10)
+PID::PID(float P, float I, float D, Motor motor, char tuningMode, int timestep, int substep)
 {
     this->P = P;
     this->I = I;

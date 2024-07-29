@@ -21,7 +21,7 @@ static EncoderFactory factory;
 /**
  * Motor class that holds PWMControl and quadrature_encoder class, encapsulates functions to set and read values of 1 motor
  */
-Motor::Motor(int motorPin, int pwmPin, unsigned int encoderPin, float ratio = 1.0, int chan = PWM_CHAN_A, int countMax = COUNT_MAX)
+Motor::Motor(int motorPin, int pwmPin, unsigned int encoderPin, float ratio, int chan, int countMax)
 {
     this->pwmControl = PWMControl(motorPin, pwmPin, chan, countMax);
     this->encoder = factory.createEncoder(encoderPin, ratio);
@@ -47,7 +47,7 @@ float Motor::GetVelocity()
     return this->encoder.get_velocity();
 }
 
-PWMControl::PWMControl(int motorPin, int pwmPin, int chan = PWM_CHAN_A, int countMax = COUNT_MAX)
+PWMControl::PWMControl(int motorPin, int pwmPin, int chan, int countMax)
 {
     // two motors per module, each requiring 3 pins
     // two pins to define h-bridge control and one pin for pwm (since there are 2 motors, there are 2 pwm pins)
@@ -125,7 +125,7 @@ void PWMControl::Drive(float drivePercentange)
 // @param sm the state machine to keep track of the encoder, 0-3
 // @param which pio
 // @param ratio the ratio by which to multiply encoder ticks
-Encoder::Encoder(uint pinA, uint sm, PIO pio, float ratio = 1.0, bool addProgram = true)
+Encoder::Encoder(uint pinA, uint sm, PIO pio, float ratio, bool addProgram)
 {
     this->pio = pio;
     this->sm = sm;

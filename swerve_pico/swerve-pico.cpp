@@ -5,7 +5,6 @@
 #include <pico/i2c_slave.h>
 #include <pico/stdlib.h>
 
-#include "motor-library.h"
 #include "messaging-library.h"
 #include "control-library.h"
 #include "sensor-library.h"

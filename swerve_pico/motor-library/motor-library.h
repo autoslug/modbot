@@ -1,6 +1,8 @@
-#include "pio.h"
-#include "pwm.h"
+// #pragma once
+#include <hardware/pio.h>
+#include <hardware/pwm.h>
 #include "quadrature_encoder.pio.h"
+#include <stdexcept>
 
 #define COUNT_MAX 65535
 
@@ -8,20 +10,7 @@ const float ROT_PER_TICK = 1.0 / (4 * 374.0);
 const float PULLEY_RATIO = 0.3185 / 1.528;
 const float DEG_PER_ROT = 360.0;
 
-class Motor
-{
-public:
-    Motor();
-    Motor(int motorPin, int pwmPin, unsigned int encoderPin, float ratio = 1.0, int chan = PWM_CHAN_A, int countMax = COUNT_MAX);
-    void Setup();
-    void SetPwmPercentage(float percentage);
-    float GetPosition();
-    float GetVelocity();
 
-private:
-    PWMControl pwmControl;
-    Encoder encoder;
-};
 
 class PWMControl
 {
@@ -80,4 +69,19 @@ public:
 
 private:
     static unsigned int encoder_count;
+};
+
+class Motor
+{
+public:
+    Motor();
+    Motor(int motorPin, int pwmPin, unsigned int encoderPin, float ratio = 1.0, int chan = PWM_CHAN_A, int countMax = COUNT_MAX);
+    void Setup();
+    void SetPwmPercentage(float percentage);
+    float GetPosition();
+    float GetVelocity();
+
+private:
+    PWMControl pwmControl;
+    Encoder encoder;
 };

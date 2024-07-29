@@ -27,10 +27,6 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 add_executable(swerve-pico swerve-pico.cpp
-${CMAKE_CURRENT_LIST_DIR}/motor-library/motor-library.cpp
-${CMAKE_CURRENT_LIST_DIR}/control-library/control-library.cpp
-${CMAKE_CURRENT_LIST_DIR}/sensor-library/sensor-library.cpp
-${CMAKE_CURRENT_LIST_DIR}/messaging-library/messaging-library.cpp
 )
 
 
@@ -58,14 +54,6 @@ target_include_directories(swerve-pico PRIVATE
 target_link_libraries(swerve-pico
   hardware_pwm
   hardware_pio
-)
-
-# # add all subdirectories of project
- target_include_directories(swerve-pico PRIVATE
- ${CMAKE_CURRENT_LIST_DIR}/control-library
- ${CMAKE_CURRENT_LIST_DIR}/messaging-library
- ${CMAKE_CURRENT_LIST_DIR}/motor-library
- ${CMAKE_CURRENT_LIST_DIR}/sensor-library
 )
 
 # link pio

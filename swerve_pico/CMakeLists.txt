@@ -17,38 +17,46 @@ if (PICO_SDK_VERSION_STRING VERSION_LESS "1.4.0")
   message(FATAL_ERROR "Raspberry Pi Pico SDK version 1.4.0 (or later) required. Your version is ${PICO_SDK_VERSION_STRING}")
 endif()
 
-project(pico_i2c C CXX ASM)
+project(swerve-pico C CXX ASM)
+
+# enable error handling
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
+add_executable(swerve-pico swerve-pico.cpp
+)
 
-add_executable(pico_i2c pico_i2c.c )
 
-pico_set_program_name(pico_i2c "pico_i2c")
-pico_set_program_version(pico_i2c "0.1")
+pico_set_program_name(swerve-pico "swerve-pico")
+pico_set_program_version(swerve-pico "0.1")
 
-pico_enable_stdio_uart(pico_i2c 0)
-pico_enable_stdio_usb(pico_i2c 1)
+pico_enable_stdio_uart(swerve-pico 0)
+pico_enable_stdio_usb(swerve-pico 1)
 
 # Add the standard library to the build
-target_link_libraries(pico_i2c
+target_link_libraries(swerve-pico
         pico_stdlib
         pico_i2c_slave
         hardware_i2c
-        )
+        hardware_pio
+)
 
 # Add the standard include files to the build
-target_include_directories(pico_i2c PRIVATE
+target_include_directories(swerve-pico PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
   ${CMAKE_CURRENT_LIST_DIR}/.. # for our common lwipopts or any other standard includes, if required
 )
 
 # Add any user requested libraries
-target_link_libraries(pico_i2c 
-        hardware_i2c
-        )
+target_link_libraries(swerve-pico
+  hardware_pwm
+  hardware_pio
+)
 
-pico_add_extra_outputs(pico_i2c)
+# link pio
+pico_generate_pio_header(swerve-pico ${CMAKE_CURRENT_LIST_DIR}/motor-library/quadrature_encoder.pio)
 
+pico_add_extra_outputs(swerve-pico)

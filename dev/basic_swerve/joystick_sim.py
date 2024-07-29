@@ -162,7 +162,7 @@ if __name__ == "__main__":
                     scale=0.5,
                 )
 
-            print(module_controls)
+            # print(module_controls)
 
             # plot center direction vector
             plt.quiver(
